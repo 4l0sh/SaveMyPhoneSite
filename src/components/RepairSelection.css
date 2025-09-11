@@ -1,0 +1,478 @@
+.repair-selection {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.main-content {
+  padding: 40px 0;
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.selection-section {
+  min-width: 0;
+}
+
+.selection-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  position: relative;
+}
+
+.back-arrow {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  cursor: pointer;
+}
+
+.arrow {
+  font-size: 24px;
+  color: #ff6b35;
+  background: #fff5f2;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.arrow:hover {
+  background: #ff6b35;
+  color: white;
+}
+
+.device-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+  padding-top: 20px;
+}
+
+.device-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.device-icon {
+  font-size: 3rem;
+  background: #fff5f2;
+  padding: 15px;
+  border-radius: 12px;
+  border: 2px solid #ff6b35;
+}
+
+.device-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.device-type {
+  color: #ff6b35;
+  font-weight: 600;
+  margin: 5px 0 0 0;
+}
+
+.selection-title {
+  font-size: 1.8rem;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.highlight {
+  color: #ff6b35;
+  font-weight: 700;
+}
+
+.tax-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 30px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #ff6b35;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.repairs-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.repair-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.repair-card:hover {
+  border-color: #ff6b35;
+  box-shadow: 0 4px 20px rgba(255, 107, 53, 0.1);
+}
+
+.repair-card.selected {
+  border-color: #ff6b35;
+  background: #fff5f2;
+  box-shadow: 0 4px 20px rgba(255, 107, 53, 0.2);
+}
+
+.repair-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.repair-icon {
+  font-size: 1.5rem;
+  width: 40px;
+  text-align: center;
+}
+
+.repair-info {
+  flex: 1;
+}
+
+.repair-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 5px 0;
+}
+
+.repair-duration {
+  font-size: 0.9rem;
+  color: #ff6b35;
+  font-weight: 600;
+  margin: 0;
+}
+
+.repair-price {
+  text-align: right;
+}
+
+.price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ff6b35;
+}
+
+.price-request {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.repair-description {
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 55px;
+}
+
+.continue-section {
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* Summary Section */
+.summary-section {
+  position: sticky;
+  top: 120px;
+  height: fit-content;
+}
+
+.repair-list-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+}
+
+.list-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff6b35;
+  margin: 0 0 10px 0;
+}
+
+.device-summary {
+  color: #666;
+  margin: 0 0 30px 0;
+  font-size: 1.1rem;
+}
+
+.selected-repairs {
+  margin-bottom: 30px;
+}
+
+.repair-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.repair-item:last-child {
+  border-bottom: none;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.item-detail {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.item-price {
+  font-weight: 700;
+  color: #ff6b35;
+  font-size: 1.1rem;
+}
+
+.pricing-summary {
+  border-top: 2px solid #f0f0f0;
+  padding-top: 20px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  color: #666;
+}
+
+.combo-discount {
+  margin-bottom: 20px;
+}
+
+.discount-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.discount-value {
+  float: right;
+  color: #666;
+}
+
+.discount-offer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  background: #f0fff4;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.offer-icon {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.offer-text {
+  font-size: 0.9rem;
+  color: #28a745;
+  font-weight: 600;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-top: 2px solid #ff6b35;
+  margin-top: 20px;
+}
+
+.total-label {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.total-info {
+  text-align: right;
+}
+
+.total-price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ff6b35;
+  display: block;
+}
+
+.tax-info {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.quotation-section {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 30px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.quotation-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ff6b35;
+  margin: 0 0 5px 0;
+}
+
+.quotation-subtitle {
+  color: #666;
+  margin: 0 0 20px 0;
+  font-size: 0.9rem;
+}
+
+.quotation-btn {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .content-wrapper {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .summary-section {
+    position: static;
+    order: -1;
+  }
+
+  .repair-list-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding: 0 15px;
+  }
+
+  .selection-card {
+    padding: 30px 20px;
+  }
+
+  .device-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .device-icon {
+    font-size: 2.5rem;
+    padding: 12px;
+  }
+
+  .device-title {
+    font-size: 1.5rem;
+  }
+
+  .selection-title {
+    font-size: 1.5rem;
+  }
+
+  .repair-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .repair-price {
+    width: 100%;
+    text-align: left;
+    margin-top: 10px;
+  }
+
+  .repair-description {
+    padding-left: 0;
+    margin-top: 10px;
+  }
+
+  .total-price {
+    font-size: 1.5rem;
+  }
+}
