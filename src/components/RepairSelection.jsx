@@ -1,18 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./RepairSelection.css";
 import ProgressBar from "./ProgressBar";
 
-const RepairSelection = ({
-  selectedBrand,
-  selectedModel,
-  selectedRepairs,
-  setSelectedRepairs,
-  nextStep,
-  prevStep,
-}) => {
+const RepairSelection = () => {
   const [includeTax, setIncludeTax] = useState(true);
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedRepairs, setSelectedRepairs] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const brand = localStorage.getItem("selectedBrand");
+    const model = localStorage.getItem("selectedModel");
+
+    if (brand && model) {
+      setSelectedBrand(brand);
+      setSelectedModel(model);
+    } else {
+      navigate("/");
+    }
+  }, [navigate]);
 
   // Mock repair data with prices
   const repairOptions = [
@@ -101,8 +111,13 @@ const RepairSelection = ({
 
   const handleContinue = () => {
     if (selectedRepairs.length > 0) {
-      nextStep();
+      localStorage.setItem("selectedRepairs", JSON.stringify(selectedRepairs));
+      navigate("/booking");
     }
+  };
+
+  const handleBack = () => {
+    navigate("/model");
   };
 
   const formatPrice = (price) => {
@@ -111,14 +126,14 @@ const RepairSelection = ({
 
   return (
     <div className="repair-selection">
-      <ProgressBar currentStep={2} />
+      <ProgressBar currentStep={3} />
 
       <main className="main-content">
         <div className="container">
           <div className="content-wrapper">
             <div className="selection-section">
               <div className="selection-card">
-                <div className="back-arrow" onClick={prevStep}>
+                <div className="back-arrow" onClick={handleBack}>
                   <span className="arrow">←</span>
                 </div>
 
@@ -260,13 +275,12 @@ const RepairSelection = ({
                     </div>
                   </div>
 
-                  <div className="quotation-section">
-                    <h4 className="quotation-title">Create A Quotation</h4>
-                    <p className="quotation-subtitle">
-                      Directly in your mailbox
-                    </p>
-                    <button className="btn btn-primary quotation-btn">
-                      Final Step
+                  <div className="continue-section">
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleContinue}
+                    >
+                      Continue to Booking
                     </button>
                   </div>
                 </div>

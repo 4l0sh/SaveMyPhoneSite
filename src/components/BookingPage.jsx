@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./BookingPage.css";
 import ProgressBar from "./ProgressBar";
 
-const BookingPage = ({
-  selectedBrand,
-  selectedModel,
-  selectedRepairs,
-  prevStep,
-}) => {
+const BookingPage = (props) => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,6 +17,38 @@ const BookingPage = ({
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const navigate = useNavigate();
+
+  // State for device/repair info, fallback to props if available
+  const [selectedBrand, setSelectedBrand] = useState(props.selectedBrand || "");
+  const [selectedModel, setSelectedModel] = useState(props.selectedModel || "");
+  const [selectedRepairs, setSelectedRepairs] = useState(
+    props.selectedRepairs || []
+  );
+  const prevStep = props.prevStep;
+
+  useEffect(() => {
+    // If any required info is missing, try to load from localStorage
+    if (!selectedBrand || !selectedModel || selectedRepairs.length === 0) {
+      const brand = localStorage.getItem("selectedBrand");
+      const model = localStorage.getItem("selectedModel");
+      const repairs = localStorage.getItem("selectedRepairs");
+      if (brand && model && repairs) {
+        setSelectedBrand(brand);
+        setSelectedModel(model);
+        try {
+          setSelectedRepairs(JSON.parse(repairs));
+        } catch {
+          setSelectedRepairs([]);
+        }
+      } else {
+        // If still missing, redirect to start
+        navigate("/");
+      }
+    }
+    // eslint-disable-next-line
+  }, []);
 
   const timeSlots = [
     "09:00",
@@ -131,7 +159,10 @@ const BookingPage = ({
           <div className="content-wrapper">
             <div className="booking-section">
               <div className="booking-card">
-                <div className="back-arrow" onClick={prevStep}>
+                <div
+                  className="back-arrow"
+                  onClick={prevStep ? prevStep : () => navigate("/repair")}
+                >
                   <span className="arrow">←</span>
                 </div>
 

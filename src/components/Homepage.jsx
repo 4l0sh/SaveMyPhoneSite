@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Homepage.css";
 import ProgressBar from "./ProgressBar";
 
-const Homepage = ({ selectedBrand, setSelectedBrand, nextStep }) => {
+const Homepage = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const navigate = useNavigate();
 
   const brands = [
     { name: "Apple", logo: "🍎" },
@@ -32,14 +35,16 @@ const Homepage = ({ selectedBrand, setSelectedBrand, nextStep }) => {
       );
       if (detectedBrand) {
         setSelectedBrand(detectedBrand.name);
+        localStorage.setItem("selectedBrand", detectedBrand.name);
       }
-      nextStep();
+      navigate("/model");
     }
   };
 
   const handleContinue = () => {
     if (selectedBrand) {
-      nextStep();
+      localStorage.setItem("selectedBrand", selectedBrand);
+      navigate("/model");
     }
   };
 
@@ -52,10 +57,13 @@ const Homepage = ({ selectedBrand, setSelectedBrand, nextStep }) => {
           <div className="hero-content">
             <h1 className="hero-title">Save my Phone</h1>
             <p className="hero-subtitle">Professional Phone Repair Services</p>
-            <p className="hero-description">
-              Fast, reliable, and affordable phone repairs with genuine parts
-              and expert technicians.
-            </p>
+            <h2>Wil je de status van je reparatie volgen?</h2>
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate("/Status")}
+            >
+              Volg je reparatie
+            </button>
           </div>
         </div>
       </header>

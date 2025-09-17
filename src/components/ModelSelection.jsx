@@ -1,17 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./ModelSelection.css";
 import ProgressBar from "./ProgressBar";
 
-const ModelSelection = ({
-  selectedBrand,
-  selectedModel,
-  setSelectedModel,
-  nextStep,
-  prevStep,
-}) => {
+const ModelSelection = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const brand = localStorage.getItem("selectedBrand");
+    if (brand) {
+      setSelectedBrand(brand);
+    } else {
+      navigate("/");
+    }
+  }, [navigate]);
 
   // Mock data for different brand models
   const modelData = {
@@ -95,24 +102,30 @@ const ModelSelection = ({
   const handleSearch = () => {
     if (searchTerm.trim() && filteredModels.length > 0) {
       setSelectedModel(filteredModels[0]);
-      nextStep();
+      localStorage.setItem("selectedModel", filteredModels[0]);
+      navigate("/repair");
     }
   };
 
   const handleContinue = () => {
     if (selectedModel) {
-      nextStep();
+      localStorage.setItem("selectedModel", selectedModel);
+      navigate("/repair");
     }
+  };
+
+  const handleBack = () => {
+    navigate("/");
   };
 
   return (
     <div className="model-selection">
-      <ProgressBar currentStep={1} />
+      <ProgressBar currentStep={2} />
 
       <main className="main-content">
         <div className="container">
           <div className="selection-card">
-            <div className="back-arrow" onClick={prevStep}>
+            <div className="back-arrow" onClick={handleBack}>
               <span className="arrow">←</span>
             </div>
 
