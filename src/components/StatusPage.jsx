@@ -1,26 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./StatusPage.css";
 import logo from "../assets/savemyphone.png";
-
-const mockStatusData = {
-  ABC123: {
-    customer: "John Doe",
-    device: "iPhone 14 Pro",
-    repairs: ["Screen Replacement", "Battery Replacement"],
-    status: "In Progress",
-    lastUpdate: "2024-06-10 14:30",
-    notes: "Waiting for parts. Estimated ready tomorrow.",
-  },
-  XYZ789: {
-    customer: "Jane Smith",
-    device: "Samsung Galaxy S23",
-    repairs: ["Charging Port Repair"],
-    status: "Ready for Pickup",
-    lastUpdate: "2024-06-09 17:00",
-    notes: "Repair complete. Please collect your device.",
-  },
-};
 
 const statusIcons = {
   "In Progress": "🔧",
@@ -43,7 +24,24 @@ const StatusPage = () => {
   const [statusInfo, setStatusInfo] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [apiData, setApiData] = useState(null);
   const navigate = useNavigate();
+
+  // Fetch data when component mounts
+  useEffect(() => {
+    const options = {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${import.meta.env.VITE_REM_API}`,
+      },
+    };
+
+    fetch("https://api.roapp.io/orders", options)
+      .then((res) => res.json())
+      .then((res) => setApiData(res.data))
+      .catch((err) => console.error(err));
+  }, []);
 
   const handleCheckStatus = (e) => {
     e.preventDefault();
@@ -52,63 +50,81 @@ const StatusPage = () => {
     setLoading(true);
 
     setTimeout(() => {
-      const info = mockStatusData[refCode.trim().toUpperCase()];
-      setLoading(false);
-      if (info) {
-        setStatusInfo(info);
+      if (apiData) {
+        const order = apiData.find(
+          (order) => order.id_label === refCode.trim().toUpperCase()
+        );
+
+        if (order) {
+          const mappedStatus = {
+            customer: order.client.name,
+            device: `${order.asset.brand} ${order.asset.model}`, // Combine brand and model
+            repairs: [order.malfunction],
+            status: order.status.name,
+            lastUpdate: new Date(order.modified_at).toLocaleString(),
+            price: order.price ? `€${order.price}` : "Price not set",
+            notes:
+              order.engineer_notes ||
+              order.manager_notes ||
+              "No notes available",
+          };
+          setStatusInfo(mappedStatus);
+        } else {
+          setError("Geen reparatie gevonden voor deze referentiecode.");
+        }
       } else {
-        setError("No repair found for this reference code.");
+        setError(
+          "Kan reparatiegegevens niet ophalen. Probeer het later opnieuw."
+        );
       }
+      setLoading(false);
     }, 700);
   };
 
   return (
-    <div className="status-page smp-dark">
+    <div className="status-page">
       <nav className="smp-navbar">
         <img src={logo} alt="SaveMyPhone Logo" className="smp-navbar-logo" />
         <button className="smp-navbar-btn" onClick={() => navigate("/")}>
           Home
         </button>
       </nav>
-      <div className="status-container smp-dark">
+      <div className="status-container">
         <div className="status-header">
           <span className="status-main-icon">🔎</span>
-          <h2 className="status-title">Track Your Repair</h2>
+          <h2 className="status-title">Volg je reparatie</h2>
           <p className="status-subtitle">
-            Enter your reference code to see the latest status of your device
-            repair.
+            Vul je referentiecode in om de laatste status van je reparatie te
+            bekijken.
             <br />
             <span className="status-tip">
-              You can find this code on your proof of delivery.
+              Je vindt deze code op je afgiftebewijs.
             </span>
           </p>
         </div>
         <form className="status-form" onSubmit={handleCheckStatus}>
           <label htmlFor="refCode" className="status-label">
-            Reference Code
+            Referentiecode
           </label>
           <div className="status-input-row">
             <input
               id="refCode"
               type="text"
-              className="status-input smp-dark"
+              className="status-input"
               value={refCode}
               onChange={(e) => setRefCode(e.target.value)}
-              placeholder="e.g. ABC123"
+              placeholder="bijv. ABC123"
               required
               autoFocus
             />
-            <button
-              type="submit"
-              className="btn btn-primary status-btn smp-dark"
-            >
-              {loading ? <span className="status-loader"></span> : "Check"}
+            <button type="submit" className="btn btn-primary status-btn">
+              {loading ? <span className="status-loader"></span> : "Controleer"}
             </button>
           </div>
         </form>
-        {error && <div className="status-error smp-dark">{error}</div>}
+        {error && <div className="status-error">{error}</div>}
         {statusInfo && (
-          <div className="status-result animate-in smp-dark">
+          <div className="status-result animate-in">
             <div className="status-result-header">
               <span
                 className="status-result-icon"
@@ -130,27 +146,33 @@ const StatusPage = () => {
                   </span>
                 </h3>
                 <div className="status-last-update">
-                  Last update: {statusInfo.lastUpdate}
+                  Laatste update: {statusInfo.lastUpdate}
                 </div>
               </div>
             </div>
             <div className="status-details-list">
               <div className="status-detail-row">
-                <span className="status-detail-label">Customer:</span>
+                <span className="status-detail-label">Klant:</span>
                 <span>{statusInfo.customer}</span>
               </div>
               <div className="status-detail-row">
-                <span className="status-detail-label">Device:</span>
+                <span className="status-detail-label">Toestel:</span>
                 <span>{statusInfo.device}</span>
               </div>
               <div className="status-detail-row">
-                <span className="status-detail-label">Repairs:</span>
+                <span className="status-detail-label">Probleem:</span>
                 <span>{statusInfo.repairs.join(", ")}</span>
               </div>
               <div className="status-detail-row">
-                <span className="status-detail-label">Notes:</span>
-                <span>{statusInfo.notes}</span>
+                <span className="status-detail-label">Prijs:</span>
+                <span>{statusInfo.price}</span>
               </div>
+              {statusInfo.notes && (
+                <div className="status-detail-row">
+                  <span className="status-detail-label">Notities:</span>
+                  <span>{statusInfo.notes}</span>
+                </div>
+              )}
             </div>
           </div>
         )}

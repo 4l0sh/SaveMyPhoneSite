@@ -113,26 +113,26 @@ const BookingPage = (props) => {
         <div className="success-container">
           <div className="success-card">
             <div className="success-icon">✅</div>
-            <h2 className="success-title">Booking Confirmed!</h2>
+            <h2 className="success-title">Afspraak bevestigd!</h2>
             <p className="success-message">
-              Thank you for choosing Save my Phone. We have received your
-              booking request and will contact you shortly to confirm your
-              appointment.
+              Bedankt dat je voor Save my Phone hebt gekozen. We hebben je
+              aanvraag ontvangen en nemen binnenkort contact met je op om de
+              afspraak te bevestigen.
             </p>
             <div className="booking-summary">
-              <h3>Booking Details:</h3>
+              <h3>Afspraakdetails:</h3>
               <p>
-                <strong>Device:</strong> {selectedBrand} {selectedModel}
+                <strong>Toestel:</strong> {selectedBrand} {selectedModel}
               </p>
               <p>
-                <strong>Repairs:</strong>{" "}
+                <strong>Reparaties:</strong>{" "}
                 {selectedRepairs.map((r) => r.name).join(", ")}
               </p>
               <p>
-                <strong>Preferred Date:</strong> {formData.preferredDate}
+                <strong>Voorkeursdatum:</strong> {formData.preferredDate}
               </p>
               <p>
-                <strong>Preferred Time:</strong> {formData.preferredTime}
+                <strong>Voorkeurstijd:</strong> {formData.preferredTime}
               </p>
               <p>
                 <strong>Contact:</strong> {formData.email}
@@ -142,7 +142,7 @@ const BookingPage = (props) => {
               className="btn btn-primary"
               onClick={() => window.location.reload()}
             >
-              Book Another Repair
+              Nog een reparatie plannen
             </button>
           </div>
         </div>
@@ -167,18 +167,18 @@ const BookingPage = (props) => {
                 </div>
 
                 <div className="booking-header">
-                  <h2 className="booking-title">Book Your Appointment</h2>
+                  <h2 className="booking-title">Plan je afspraak</h2>
                   <p className="booking-subtitle">
-                    Fill in your details to schedule your repair
+                    Vul je gegevens in om je reparatie in te plannen
                   </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="booking-form">
                   <div className="form-section">
-                    <h3 className="section-title">Personal Information</h3>
+                    <h3 className="section-title">Persoonlijke gegevens</h3>
                     <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="firstName">First Name *</label>
+                        <label htmlFor="firstName">Voornaam *</label>
                         <input
                           type="text"
                           id="firstName"
@@ -190,7 +190,7 @@ const BookingPage = (props) => {
                         />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="lastName">Last Name *</label>
+                        <label htmlFor="lastName">Achternaam *</label>
                         <input
                           type="text"
                           id="lastName"
@@ -205,7 +205,7 @@ const BookingPage = (props) => {
 
                     <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="email">Email Address *</label>
+                        <label htmlFor="email">E-mailadres *</label>
                         <input
                           type="email"
                           id="email"
@@ -217,7 +217,7 @@ const BookingPage = (props) => {
                         />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="phone">Phone Number *</label>
+                        <label htmlFor="phone">Telefoonnummer *</label>
                         <input
                           type="tel"
                           id="phone"
@@ -233,11 +233,11 @@ const BookingPage = (props) => {
 
                   <div className="form-section">
                     <h3 className="section-title">
-                      Preferred Appointment Time
+                      Voorkeurstijd voor afspraak
                     </h3>
                     <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="preferredDate">Preferred Date *</label>
+                        <label htmlFor="preferredDate">Voorkeursdatum *</label>
                         <input
                           type="date"
                           id="preferredDate"
@@ -250,7 +250,7 @@ const BookingPage = (props) => {
                         />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="preferredTime">Preferred Time *</label>
+                        <label htmlFor="preferredTime">Voorkeurstijd *</label>
                         <select
                           id="preferredTime"
                           name="preferredTime"
@@ -259,7 +259,7 @@ const BookingPage = (props) => {
                           required
                           className="form-input"
                         >
-                          <option value="">Select a time</option>
+                          <option value="">Kies een tijd</option>
                           {timeSlots.map((time) => (
                             <option key={time} value={time}>
                               {time}
@@ -271,10 +271,10 @@ const BookingPage = (props) => {
                   </div>
 
                   <div className="form-section">
-                    <h3 className="section-title">Additional Information</h3>
+                    <h3 className="section-title">Aanvullende informatie</h3>
                     <div className="form-group">
                       <label htmlFor="additionalNotes">
-                        Additional Notes (Optional)
+                        Aanvullende opmerkingen (optioneel)
                       </label>
                       <textarea
                         id="additionalNotes"
@@ -283,7 +283,7 @@ const BookingPage = (props) => {
                         onChange={handleInputChange}
                         rows="4"
                         className="form-input"
-                        placeholder="Any additional information about your device or repair needs..."
+                        placeholder="Eventuele extra informatie over je toestel of reparatie..."
                       ></textarea>
                     </div>
                   </div>
@@ -293,7 +293,7 @@ const BookingPage = (props) => {
                       type="submit"
                       className="btn btn-primary submit-btn"
                     >
-                      Confirm Booking
+                      Bevestig afspraak
                     </button>
                   </div>
                 </form>
@@ -302,7 +302,7 @@ const BookingPage = (props) => {
 
             <div className="summary-section">
               <div className="booking-summary-card">
-                <h3 className="summary-title">Booking Summary</h3>
+                <h3 className="summary-title">Overzicht van de afspraak</h3>
 
                 <div className="device-summary">
                   <div className="device-icon">📱</div>
@@ -315,7 +315,7 @@ const BookingPage = (props) => {
                 </div>
 
                 <div className="repairs-summary">
-                  <h4 className="repairs-title">Selected Repairs:</h4>
+                  <h4 className="repairs-title">Geselecteerde reparaties:</h4>
                   {selectedRepairs.map((repair) => (
                     <div key={repair.id} className="repair-summary-item">
                       <div className="repair-info">
@@ -327,7 +327,7 @@ const BookingPage = (props) => {
                       <div className="repair-price">
                         {repair.price
                           ? formatPrice(repair.price)
-                          : "Price on request"}
+                          : "Prijs op aanvraag"}
                       </div>
                     </div>
                   ))}
@@ -335,29 +335,30 @@ const BookingPage = (props) => {
 
                 <div className="total-summary">
                   <div className="total-row">
-                    <span className="total-label">Estimated Total:</span>
+                    <span className="total-label">Geschatte totaalprijs:</span>
                     <span className="total-price">
                       {formatPrice(calculateTotal())}
                     </span>
                   </div>
                   <p className="total-note">
-                    *Final price may vary after device inspection
+                    *De uiteindelijke prijs kan variëren na inspectie van het
+                    toestel
                   </p>
                 </div>
 
                 <div className="contact-info">
-                  <h4 className="contact-title">Our Location</h4>
+                  <h4 className="contact-title">Onze locatie</h4>
                   <p className="contact-details">
                     123 Repair Street
                     <br />
                     Amsterdam, 1012 AB
                     <br />
-                    Netherlands
+                    Nederland
                     <br />
                     <br />
-                    <strong>Phone:</strong> +31 20 123 4567
+                    <strong>Telefoon:</strong> +31 20 123 4567
                     <br />
-                    <strong>Email:</strong> info@savemyphone.nl
+                    <strong>E-mail:</strong> info@savemyphone.nl
                   </p>
                 </div>
               </div>

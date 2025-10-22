@@ -6,7 +6,6 @@ import "./RepairSelection.css";
 import ProgressBar from "./ProgressBar";
 
 const RepairSelection = () => {
-  const [includeTax, setIncludeTax] = useState(true);
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedRepairs, setSelectedRepairs] = useState([]);
@@ -28,85 +27,156 @@ const RepairSelection = () => {
   const repairOptions = [
     {
       id: "investigation",
-      name: "Investigation",
+      name: "Onderzoek",
       description:
-        "If you are unsure about the issue with your device, further investigation is needed.",
-      duration: "2 HOURS",
+        "Als je niet zeker weet wat het probleem is met je toestel, is verder onderzoek nodig.",
+      duration: "2 UUR",
       price: null,
-      priceText: "Price on request",
+      priceText: "Prijs op aanvraag",
       icon: "🔍",
     },
     {
-      id: "screen",
-      name: "Screen",
-      description:
-        "Your screen is cracked, doesn't respond properly, or displays horizontal/vertical lines and/or unusual colors.",
-      duration: "30 MINUTES",
-      price: 435,
+      id: "screen-basic",
+      name: "Scherm (basis)",
+      description: "Schermvervanging van basiskwaliteit met garantie.",
+      duration: "30 MINUTEN",
       icon: "📱",
+      prices: {
+        // iPhone 16 Series
+        "iPhone 16 Pro Max": 240,
+        "iPhone 16 Pro": 220,
+        "iPhone 16 Plus": 200,
+        "iPhone 16": 180,
+        "iPhone 16e": 160,
+        // iPhone 15 Series
+        "iPhone 15 Pro Max": 220,
+        "iPhone 15 Pro": 200,
+        "iPhone 15 Plus": 180,
+        "iPhone 15": 160,
+        // Add all models from your list...
+      },
+    },
+    {
+      id: "screen-premium",
+      name: "Scherm (premium)",
+      description:
+        "Schermvervanging van hoge kwaliteit met extra duurzaamheid.",
+      duration: "30 MINUTEN",
+      icon: "📱",
+      prices: {
+        // iPhone 16 Series
+        "iPhone 16 Pro Max": 270,
+        "iPhone 16 Pro": 250,
+        "iPhone 16 Plus": 230,
+        "iPhone 16": 210,
+        "iPhone 16e": 190,
+        // iPhone 15 Series
+        "iPhone 15 Pro Max": 250,
+        "iPhone 15 Pro": 230,
+        "iPhone 15 Plus": 210,
+        "iPhone 15": 190,
+        // Add all models from your list...
+      },
+    },
+    {
+      id: "screen-original",
+      name: "Scherm (origineel)",
+      description: "Origineel fabrikantenscherm.",
+      duration: "30 MINUTEN",
+      icon: "📱",
+      prices: {
+        // iPhone 16 Series
+        "iPhone 16 Pro Max": 310,
+        "iPhone 16 Pro": 290,
+        "iPhone 16 Plus": 270,
+        "iPhone 16": 250,
+        "iPhone 16e": 230,
+        // iPhone 15 Series
+        "iPhone 15 Pro Max": 290,
+        "iPhone 15 Pro": 270,
+        "iPhone 15 Plus": 250,
+        "iPhone 15": 230,
+        // Add all models from your list...
+      },
+    },
+    {
+      id: "battery-original",
+      name: "Batterij (origineel)",
+      description: "Originele batterij van de fabrikant.",
+      duration: "45 MINUTEN",
+      icon: "🔋",
+      prices: {
+        // iPhone 16 Series
+        "iPhone 16 Pro Max": 70,
+        "iPhone 16 Pro": 65,
+        "iPhone 16 Plus": 60,
+        "iPhone 16": 55,
+        "iPhone 16e": 50,
+        // Add all models from your list...
+      },
+    },
+    {
+      id: "battery-copy",
+      name: "Batterij (kopie)",
+      description: "Hoogwaardige alternatieve batterij.",
+      duration: "45 MINUTEN",
+      icon: "🔋",
+      prices: {
+        // iPhone 16 Series
+        "iPhone 16 Pro Max": 60,
+        "iPhone 16 Pro": 55,
+        "iPhone 16 Plus": 50,
+        "iPhone 16": 45,
+        "iPhone 16e": 40,
+        // Add all models from your list...
+      },
     },
     {
       id: "charging-port",
-      name: "Charging Port",
-      description:
-        "Your device is unable to charge and/or connect to your computer.",
-      duration: "1 HOUR",
-      price: 125,
+      name: "Oplaadpoort",
+      description: "Reparatie of vervanging van een defecte oplaadpoort.",
+      duration: "1 UUR",
       icon: "⚡",
-    },
-    {
-      id: "battery",
-      name: "Battery",
-      description:
-        "The battery life of your device is very short, or your device keeps turning off.",
-      duration: "45 MINUTES",
-      price: 100,
-      icon: "🔋",
+      prices: {
+        // iPhone 16 Series
+        "iPhone 16 Pro Max": 50,
+        "iPhone 16 Pro": 45,
+        "iPhone 16 Plus": 40,
+        "iPhone 16": 35,
+        "iPhone 16e": 30,
+        // Add all models from your list...
+      },
     },
     {
       id: "water-damage",
-      name: "Water Damage",
+      name: "Waterschade",
       description:
-        "Your device has been exposed to water or other liquids and is not functioning properly.",
-      duration: "2-4 HOURS",
-      price: 75,
+        "Je toestel is blootgesteld aan water of andere vloeistoffen en werkt niet goed.",
+      duration: "2-4 UUR",
+      price: null,
+      priceText: "Prijs op aanvraag",
       icon: "💧",
     },
     {
       id: "microphone",
-      name: "Microphone (calling)",
+      name: "Microfoon (bellen)",
       description:
-        "People can't hear you during phone calls or voice recordings are not working.",
-      duration: "1 HOUR",
+        "Mensen kunnen je niet horen tijdens telefoongesprekken of spraakopnames werken niet.",
+      duration: "1 UUR",
       price: null,
-      priceText: "Price on request",
+      priceText: "Prijs op aanvraag",
       icon: "🎤",
     },
   ];
 
-  const handleRepairToggle = (repair) => {
-    const isSelected = selectedRepairs.some((r) => r.id === repair.id);
-    if (isSelected) {
-      setSelectedRepairs(selectedRepairs.filter((r) => r.id !== repair.id));
-    } else {
-      setSelectedRepairs([...selectedRepairs, repair]);
-    }
-  };
-
-  const calculateSubtotal = () => {
-    return selectedRepairs.reduce((total, repair) => {
-      return total + (repair.price || 0);
-    }, 0);
-  };
-
-  const calculateTax = (subtotal) => {
-    return Math.round(subtotal * 0.21);
-  };
-
+  // Update calculateTotal to use model-specific prices
   const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    const tax = includeTax ? calculateTax(subtotal) : 0;
-    return subtotal + tax;
+    return selectedRepairs.reduce((total, repair) => {
+      if (repair.prices && repair.prices[selectedModel]) {
+        return total + repair.prices[selectedModel];
+      }
+      return total;
+    }, 0);
   };
 
   const handleContinue = () => {
@@ -120,14 +190,44 @@ const RepairSelection = () => {
     navigate("/model");
   };
 
+  const handleRepairToggle = (repair) => {
+    const isSelected = selectedRepairs.some((r) => r.id === repair.id);
+    if (isSelected) {
+      const updated = selectedRepairs.filter((r) => r.id !== repair.id);
+      setSelectedRepairs(updated);
+      localStorage.setItem("selectedRepairs", JSON.stringify(updated));
+    } else {
+      // Attach resolved price for the selected model if available for better summary later
+      const resolvedPrice =
+        repair.prices && repair.prices[selectedModel] != null
+          ? repair.prices[selectedModel]
+          : repair.price ?? null;
+      const selected = { ...repair, price: resolvedPrice };
+      const updated = [...selectedRepairs, selected];
+      setSelectedRepairs(updated);
+      localStorage.setItem("selectedRepairs", JSON.stringify(updated));
+      // Keep the continue button flow; no auto-advance here
+    }
+  };
+
   const formatPrice = (price) => {
     return `€${price}`;
+  };
+
+  const renderRepairPrice = (repair, model) => {
+    if (repair.prices && repair.prices[model]) {
+      return <span className="price">€{repair.prices[model]}</span>;
+    }
+    return (
+      <span className="price-request">
+        {repair.priceText || "Prijs op aanvraag"}
+      </span>
+    );
   };
 
   return (
     <div className="repair-selection">
       <ProgressBar currentStep={3} />
-
       <main className="main-content">
         <div className="container">
           <div className="content-wrapper">
@@ -150,22 +250,8 @@ const RepairSelection = () => {
                 </div>
 
                 <h3 className="selection-title">
-                  Select <span className="highlight">repair</span>
+                  Selecteer een <span className="highlight">reparatie</span>
                 </h3>
-
-                <div className="tax-toggle">
-                  <label className="toggle-label">
-                    <span>Incl. TAX</span>
-                    <div className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={includeTax}
-                        onChange={(e) => setIncludeTax(e.target.checked)}
-                      />
-                      <span className="slider"></span>
-                    </div>
-                  </label>
-                </div>
 
                 <div className="repairs-grid">
                   {repairOptions.map((repair) => {
@@ -187,15 +273,7 @@ const RepairSelection = () => {
                             <p className="repair-duration">{repair.duration}</p>
                           </div>
                           <div className="repair-price">
-                            {repair.price ? (
-                              <span className="price">
-                                {formatPrice(repair.price)}
-                              </span>
-                            ) : (
-                              <span className="price-request">
-                                {repair.priceText}
-                              </span>
-                            )}
+                            {renderRepairPrice(repair, selectedModel)}
                           </div>
                         </div>
                         <p className="repair-description">
@@ -212,7 +290,7 @@ const RepairSelection = () => {
                       className="btn btn-primary"
                       onClick={handleContinue}
                     >
-                      Continue to Booking
+                      Ga verder naar afspraak
                     </button>
                   </div>
                 )}
@@ -222,7 +300,7 @@ const RepairSelection = () => {
             {selectedRepairs.length > 0 && (
               <div className="summary-section">
                 <div className="repair-list-card">
-                  <h3 className="list-title">Repair List</h3>
+                  <h3 className="list-title">Reparatielijst</h3>
                   <p className="device-summary">
                     {selectedBrand} {selectedModel}
                   </p>
@@ -233,13 +311,16 @@ const RepairSelection = () => {
                         <div className="item-info">
                           <span className="item-name">{repair.name}</span>
                           <span className="item-detail">
-                            Original {repair.name.toLowerCase()}
+                            {repair.modelPrices &&
+                            repair.modelPrices[selectedModel]
+                              ? formatPrice(repair.modelPrices[selectedModel])
+                              : repair.priceText}
                           </span>
                         </div>
                         <div className="item-price">
                           {repair.price
                             ? formatPrice(repair.price)
-                            : "Price on request"}
+                            : "Prijs op aanvraag"}
                         </div>
                       </div>
                     ))}
@@ -247,30 +328,25 @@ const RepairSelection = () => {
 
                   <div className="pricing-summary">
                     <div className="price-row">
-                      <span>sub-total</span>
-                      <span>{formatPrice(calculateSubtotal())}</span>
+                      <span>Subtotaal</span>
+                      <span>{formatPrice(calculateTotal())}</span>
                     </div>
 
                     <div className="combo-discount">
-                      <span className="discount-label">Combo-discount</span>
+                      <span className="discount-label">Combikorting</span>
                       <span className="discount-value">-</span>
                       <div className="discount-offer">
                         <span className="offer-icon">✓</span>
                         <span className="offer-text">
-                          Add an extra repair and receive €15 discount.
+                          Voeg een extra reparatie toe en ontvang €15 korting.
                         </span>
                       </div>
                     </div>
 
                     <div className="total-row">
-                      <span className="total-label">Total</span>
+                      <span className="total-label">Totaal</span>
                       <div className="total-info">
-                        <span className="total-price">
-                          {formatPrice(calculateTotal())}
-                        </span>
-                        {includeTax && (
-                          <span className="tax-info">incl. tax (21%)</span>
-                        )}
+                        <span className="total-price">€{calculateTotal()}</span>
                       </div>
                     </div>
                   </div>
@@ -280,7 +356,7 @@ const RepairSelection = () => {
                       className="btn btn-primary"
                       onClick={handleContinue}
                     >
-                      Continue to Booking
+                      Ga verder naar afspraak
                     </button>
                   </div>
                 </div>

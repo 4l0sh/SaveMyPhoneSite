@@ -3,9 +3,9 @@ import "./ProgressBar.css";
 
 const ProgressBar = ({ currentStep }) => {
   const steps = [
-    { number: 1, label: "Select device" },
-    { number: 2, label: "Select repair" },
-    { number: 3, label: "Finalize order" },
+    { number: 1, label: "Kies toestel" },
+    { number: 2, label: "Kies reparatie" },
+    { number: 3, label: "Bevestig afspraak" },
   ];
 
   return (

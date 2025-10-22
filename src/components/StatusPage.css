@@ -3,8 +3,8 @@
   justify-content: center;
   align-items: flex-start;
   min-height: 80vh;
-  background: linear-gradient(120deg, #f7f7fa 60%, #e3e9f7 100%);
-  padding-top: 40px;
+  background: #f8f9fa;
+  padding-top: 72px;
 }
 
 .status-page.dark {
@@ -19,14 +19,15 @@
 }
 
 .status-container {
-  background: #fff;
+  background: white;
   border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.09);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   padding: 38px 32px 32px 32px;
   max-width: 420px;
   width: 100%;
   margin-top: 32px;
   animation: fadeIn 0.7s;
+  color: #333;
 }
 
 .status-container.dark {
@@ -66,13 +67,7 @@
 .status-header .status-title,
 .status-header .status-subtitle,
 .status-header .status-tip {
-  color: #f3f6fa;
-}
-
-.status-header .status-title,
-.status-header .status-subtitle,
-.status-header .status-tip {
-  color: #fff;
+  color: #333;
 }
 
 .status-main-icon {
@@ -85,19 +80,19 @@
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 6px;
-  color: #222;
+  color: #333;
 }
 
 .status-subtitle {
   font-size: 1.05rem;
-  color: #5a5a5a;
+  color: #666;
   margin-bottom: 0;
 }
 
 .status-tip {
   display: block;
   font-size: 0.98rem;
-  color: #1976d2;
+  color: #ff6b35;
   margin-top: 4px;
 }
 
@@ -127,11 +122,12 @@
 .status-input {
   flex: 1;
   padding: 11px 14px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid #ddd;
   border-radius: 7px;
   font-size: 1.08rem;
-  background: #f8fafc;
-  transition: border 0.2s;
+  background: #fff;
+  transition: border 0.2s, background 0.2s;
+  color: #333;
 }
 
 .status-input.dark {
@@ -147,7 +143,7 @@
 }
 
 .status-input:focus {
-  border: 1.5px solid #1976d2;
+  border-color: #ff6b35;
   outline: none;
   background: #fff;
 }
@@ -171,6 +167,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #ff6b35;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  transition: background 0.2s;
 }
 
 .status-btn.dark {
@@ -186,6 +187,10 @@
   font-weight: 600;
 }
 
+.status-btn:hover {
+  background: #e55a2b;
+}
+
 .status-btn.dark:hover {
   background: #1560b3;
 }
@@ -197,7 +202,7 @@
 .status-loader {
   width: 22px;
   height: 22px;
-  border: 3px solid #1976d2;
+  border: 3px solid #ff6b35;
   border-top: 3px solid #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -235,12 +240,14 @@
 }
 
 .status-result {
-  background: #f3f6fa;
+  background: #fff;
   border-radius: 12px;
   padding: 22px 18px 18px 18px;
   margin-top: 10px;
-  box-shadow: 0 2px 10px rgba(25, 118, 210, 0.07);
+  box-shadow: 0 2px 10px rgba(255, 107, 53, 0.15);
   animation: popIn 0.5s;
+  color: #333;
+  border: 1px solid #eee;
 }
 
 .status-result.dark {
@@ -275,7 +282,7 @@
 
 .status-result-icon {
   font-size: 2.1rem;
-  background: #1976d2;
+  background: #ff6b35;
   color: #fff;
   border-radius: 50%;
   width: 48px;
@@ -283,8 +290,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.09);
-  border: 2px solid #ff9800;
+  box-shadow: 0 2px 10px rgba(255, 107, 53, 0.25);
+  border: 2px solid #fff5f2;
 }
 
 .status-badge {
@@ -296,12 +303,12 @@
   font-size: 1.08rem;
   letter-spacing: 0.5px;
   margin-bottom: 2px;
-  background: #ff9800;
+  background: #ff6b35;
 }
 
 .status-last-update {
   font-size: 0.97rem;
-  color: #1976d2;
+  color: #ff6b35;
   margin-top: 2px;
 }
 
@@ -321,7 +328,7 @@
   justify-content: space-between;
   font-size: 1.07rem;
   padding: 2px 0;
-  color: #f3f6fa;
+  color: #333;
 }
 
 .status-detail-label {
@@ -352,18 +359,19 @@
 
 .smp-navbar {
   width: 100vw;
-  background: #181818;
+  background: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
   height: 72px;
   box-sizing: border-box;
-  border-bottom: 2px solid #ff9800;
+  border-bottom: 2px solid #ff6b35;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .smp-navbar-logo {
@@ -375,8 +383,8 @@
 }
 
 .smp-navbar-btn {
-  background: #ff9800;
-  color: #181818;
+  background: #ff6b35;
+  color: #fff;
   border: none;
   border-radius: 7px;
   padding: 10px 28px;
@@ -388,5 +396,5 @@
 }
 
 .smp-navbar-btn:hover {
-  background: #ffb74d;
+  background: #e55a2b;
 }
