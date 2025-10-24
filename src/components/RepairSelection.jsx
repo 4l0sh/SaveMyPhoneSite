@@ -9,174 +9,45 @@ const RepairSelection = () => {
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedRepairs, setSelectedRepairs] = useState([]);
+  const [repairs, setRepairs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     const brand = localStorage.getItem("selectedBrand");
-    const model = localStorage.getItem("selectedModel");
+    const modelName = localStorage.getItem("selectedModel");
+    const modelId = localStorage.getItem("selectedModelId");
 
-    if (brand && model) {
-      setSelectedBrand(brand);
-      setSelectedModel(model);
-    } else {
-      navigate("/");
+    if (!brand || !modelId) {
+      navigate("/model");
+      return;
     }
-  }, [navigate]);
+    setSelectedBrand(brand);
+    if (modelName) setSelectedModel(modelName);
 
-  // Mock repair data with prices
-  const repairOptions = [
-    {
-      id: "investigation",
-      name: "Onderzoek",
-      description:
-        "Als je niet zeker weet wat het probleem is met je toestel, is verder onderzoek nodig.",
-      duration: "2 UUR",
-      price: null,
-      priceText: "Prijs op aanvraag",
-      icon: "🔍",
-    },
-    {
-      id: "screen-basic",
-      name: "Scherm (basis)",
-      description: "Schermvervanging van basiskwaliteit met garantie.",
-      duration: "30 MINUTEN",
-      icon: "📱",
-      prices: {
-        // iPhone 16 Series
-        "iPhone 16 Pro Max": 240,
-        "iPhone 16 Pro": 220,
-        "iPhone 16 Plus": 200,
-        "iPhone 16": 180,
-        "iPhone 16e": 160,
-        // iPhone 15 Series
-        "iPhone 15 Pro Max": 220,
-        "iPhone 15 Pro": 200,
-        "iPhone 15 Plus": 180,
-        "iPhone 15": 160,
-        // Add all models from your list...
-      },
-    },
-    {
-      id: "screen-premium",
-      name: "Scherm (premium)",
-      description:
-        "Schermvervanging van hoge kwaliteit met extra duurzaamheid.",
-      duration: "30 MINUTEN",
-      icon: "📱",
-      prices: {
-        // iPhone 16 Series
-        "iPhone 16 Pro Max": 270,
-        "iPhone 16 Pro": 250,
-        "iPhone 16 Plus": 230,
-        "iPhone 16": 210,
-        "iPhone 16e": 190,
-        // iPhone 15 Series
-        "iPhone 15 Pro Max": 250,
-        "iPhone 15 Pro": 230,
-        "iPhone 15 Plus": 210,
-        "iPhone 15": 190,
-        // Add all models from your list...
-      },
-    },
-    {
-      id: "screen-original",
-      name: "Scherm (origineel)",
-      description: "Origineel fabrikantenscherm.",
-      duration: "30 MINUTEN",
-      icon: "📱",
-      prices: {
-        // iPhone 16 Series
-        "iPhone 16 Pro Max": 310,
-        "iPhone 16 Pro": 290,
-        "iPhone 16 Plus": 270,
-        "iPhone 16": 250,
-        "iPhone 16e": 230,
-        // iPhone 15 Series
-        "iPhone 15 Pro Max": 290,
-        "iPhone 15 Pro": 270,
-        "iPhone 15 Plus": 250,
-        "iPhone 15": 230,
-        // Add all models from your list...
-      },
-    },
-    {
-      id: "battery-original",
-      name: "Batterij (origineel)",
-      description: "Originele batterij van de fabrikant.",
-      duration: "45 MINUTEN",
-      icon: "🔋",
-      prices: {
-        // iPhone 16 Series
-        "iPhone 16 Pro Max": 70,
-        "iPhone 16 Pro": 65,
-        "iPhone 16 Plus": 60,
-        "iPhone 16": 55,
-        "iPhone 16e": 50,
-        // Add all models from your list...
-      },
-    },
-    {
-      id: "battery-copy",
-      name: "Batterij (kopie)",
-      description: "Hoogwaardige alternatieve batterij.",
-      duration: "45 MINUTEN",
-      icon: "🔋",
-      prices: {
-        // iPhone 16 Series
-        "iPhone 16 Pro Max": 60,
-        "iPhone 16 Pro": 55,
-        "iPhone 16 Plus": 50,
-        "iPhone 16": 45,
-        "iPhone 16e": 40,
-        // Add all models from your list...
-      },
-    },
-    {
-      id: "charging-port",
-      name: "Oplaadpoort",
-      description: "Reparatie of vervanging van een defecte oplaadpoort.",
-      duration: "1 UUR",
-      icon: "⚡",
-      prices: {
-        // iPhone 16 Series
-        "iPhone 16 Pro Max": 50,
-        "iPhone 16 Pro": 45,
-        "iPhone 16 Plus": 40,
-        "iPhone 16": 35,
-        "iPhone 16e": 30,
-        // Add all models from your list...
-      },
-    },
-    {
-      id: "water-damage",
-      name: "Waterschade",
-      description:
-        "Je toestel is blootgesteld aan water of andere vloeistoffen en werkt niet goed.",
-      duration: "2-4 UUR",
-      price: null,
-      priceText: "Prijs op aanvraag",
-      icon: "💧",
-    },
-    {
-      id: "microphone",
-      name: "Microfoon (bellen)",
-      description:
-        "Mensen kunnen je niet horen tijdens telefoongesprekken of spraakopnames werken niet.",
-      duration: "1 UUR",
-      price: null,
-      priceText: "Prijs op aanvraag",
-      icon: "🎤",
-    },
-  ];
+    // Load merged repairs for the selected model from backend
+    setLoading(true);
+    setError("");
+    fetch(`http://localhost:3000/models/${encodeURIComponent(modelId)}/repairs`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load repairs");
+        return res.json();
+      })
+      .then((payload) => {
+        // payload: { modelId, modelNaam, imageUrl, reparaties: [...] }
+        if (payload?.modelNaam) setSelectedModel(payload.modelNaam);
+        setRepairs(
+          Array.isArray(payload?.reparaties) ? payload.reparaties : []
+        );
+      })
+      .catch((e) => setError(e.message || "Kon reparaties niet laden"))
+      .finally(() => setLoading(false));
+  }, [navigate]);
 
   // Update calculateTotal to use model-specific prices
   const calculateTotal = () => {
-    return selectedRepairs.reduce((total, repair) => {
-      if (repair.prices && repair.prices[selectedModel]) {
-        return total + repair.prices[selectedModel];
-      }
-      return total;
-    }, 0);
+    return selectedRepairs.reduce((total, r) => total + (r.price || 0), 0);
   };
 
   const handleContinue = () => {
@@ -197,12 +68,16 @@ const RepairSelection = () => {
       setSelectedRepairs(updated);
       localStorage.setItem("selectedRepairs", JSON.stringify(updated));
     } else {
-      // Attach resolved price for the selected model if available for better summary later
-      const resolvedPrice =
-        repair.prices && repair.prices[selectedModel] != null
-          ? repair.prices[selectedModel]
-          : repair.price ?? null;
-      const selected = { ...repair, price: resolvedPrice };
+      // Normalize the repair object for summary: use naam->name and prijs->price
+      const selected = {
+        id: repair.id,
+        name: repair.naam,
+        description: repair.beschrijving,
+        duration: repair.duurMinuten ? `${repair.duurMinuten} MINUTEN` : null,
+        icon: repair.icoon || "🛠️",
+        price: repair.prijs ?? null,
+        priceText: repair.prijs == null ? "Prijs op aanvraag" : undefined,
+      };
       const updated = [...selectedRepairs, selected];
       setSelectedRepairs(updated);
       localStorage.setItem("selectedRepairs", JSON.stringify(updated));
@@ -214,15 +89,11 @@ const RepairSelection = () => {
     return `€${price}`;
   };
 
-  const renderRepairPrice = (repair, model) => {
-    if (repair.prices && repair.prices[model]) {
-      return <span className="price">€{repair.prices[model]}</span>;
+  const renderRepairPrice = (repair) => {
+    if (repair.prijs != null) {
+      return <span className="price">€{repair.prijs}</span>;
     }
-    return (
-      <span className="price-request">
-        {repair.priceText || "Prijs op aanvraag"}
-      </span>
-    );
+    return <span className="price-request">Prijs op aanvraag</span>;
   };
 
   return (
@@ -254,34 +125,54 @@ const RepairSelection = () => {
                 </h3>
 
                 <div className="repairs-grid">
-                  {repairOptions.map((repair) => {
-                    const isSelected = selectedRepairs.some(
-                      (r) => r.id === repair.id
-                    );
-                    return (
-                      <div
-                        key={repair.id}
-                        className={`repair-card ${
-                          isSelected ? "selected" : ""
-                        }`}
-                        onClick={() => handleRepairToggle(repair)}
-                      >
-                        <div className="repair-header">
-                          <div className="repair-icon">{repair.icon}</div>
-                          <div className="repair-info">
-                            <h4 className="repair-name">{repair.name}</h4>
-                            <p className="repair-duration">{repair.duration}</p>
+                  {loading ? (
+                    <div className="no-models">
+                      <p>Reparaties laden...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="no-models">
+                      <p>{error}</p>
+                    </div>
+                  ) : repairs.length === 0 ? (
+                    <div className="no-models">
+                      <p>Geen reparaties gevonden</p>
+                    </div>
+                  ) : (
+                    repairs.map((repair) => {
+                      const isSelected = selectedRepairs.some(
+                        (r) => r.id === repair.id
+                      );
+                      return (
+                        <div
+                          key={repair.id}
+                          className={`repair-card ${
+                            isSelected ? "selected" : ""
+                          }`}
+                          onClick={() => handleRepairToggle(repair)}
+                        >
+                          <div className="repair-header">
+                            <div className="repair-icon">
+                              {repair.icoon || "🛠️"}
+                            </div>
+                            <div className="repair-info">
+                              <h4 className="repair-name">{repair.naam}</h4>
+                              <p className="repair-duration">
+                                {repair.duurMinuten
+                                  ? `${repair.duurMinuten} MINUTEN`
+                                  : ""}
+                              </p>
+                            </div>
+                            <div className="repair-price">
+                              {renderRepairPrice(repair)}
+                            </div>
                           </div>
-                          <div className="repair-price">
-                            {renderRepairPrice(repair, selectedModel)}
-                          </div>
+                          <p className="repair-description">
+                            {repair.beschrijving}
+                          </p>
                         </div>
-                        <p className="repair-description">
-                          {repair.description}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
 
                 {selectedRepairs.length > 0 && (
@@ -311,9 +202,8 @@ const RepairSelection = () => {
                         <div className="item-info">
                           <span className="item-name">{repair.name}</span>
                           <span className="item-detail">
-                            {repair.modelPrices &&
-                            repair.modelPrices[selectedModel]
-                              ? formatPrice(repair.modelPrices[selectedModel])
+                            {repair.price != null
+                              ? formatPrice(repair.price)
                               : repair.priceText}
                           </span>
                         </div>

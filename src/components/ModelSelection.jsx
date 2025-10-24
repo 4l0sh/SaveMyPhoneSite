@@ -6,117 +6,68 @@ import ProgressBar from "./ProgressBar";
 
 const ModelSelection = () => {
   const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedBrandLogo, setSelectedBrandLogo] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [models, setModels] = useState([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const brand = localStorage.getItem("selectedBrand");
-    if (brand) {
-      setSelectedBrand(brand);
-    } else {
+    const brandId = localStorage.getItem("selectedBrandId");
+    const brandLogoLS = localStorage.getItem("selectedBrandLogo");
+    if (!brand || !brandId) {
       navigate("/");
+      return;
     }
+    setSelectedBrand(brand);
+    if (brandLogoLS) setSelectedBrandLogo(brandLogoLS);
+
+    // If we don't have a logo in localStorage, fetch brands and resolve it
+    if (!brandLogoLS) {
+      fetch("http://localhost:3000/brands")
+        .then((res) => res.json())
+        .then((list) => {
+          const match = (list || []).find(
+            (b) => String(b._id) === String(brandId)
+          );
+          if (match?.logo) {
+            setSelectedBrandLogo(match.logo);
+            try {
+              localStorage.setItem("selectedBrandLogo", match.logo);
+            } catch {}
+          }
+          if (!brand && match?.name) setSelectedBrand(match.name);
+        })
+        .catch(() => {});
+    }
+
+    setLoading(true);
+    fetch(`http://localhost:3000/models?brandId=${encodeURIComponent(brandId)}`)
+      .then((res) => res.json())
+      .then((data) => setModels(data || []))
+      .catch((err) => console.error("Error fetching models:", err))
+      .finally(() => setLoading(false));
   }, [navigate]);
 
-  // Mock data for different brand models
-  const modelData = {
-    Apple: [
-      // iPhone 16 Series
-      "iPhone 16 Pro Max",
-      "iPhone 16 Pro",
-      "iPhone 16 Plus",
-      "iPhone 16",
-      "iPhone 16e",
-      // iPhone 15 Series
-      "iPhone 15 Pro Max",
-      "iPhone 15 Pro",
-      "iPhone 15 Plus",
-      "iPhone 15",
-      // iPhone 14 Series
-      "iPhone 14 Pro Max",
-      "iPhone 14 Pro",
-      "iPhone 14 Plus",
-      "iPhone 14",
-      // iPhone 13 Series
-      "iPhone 13 Pro Max",
-      "iPhone 13 Pro",
-      "iPhone 13",
-      "iPhone 13 Mini",
-      // iPhone 12 Series
-      "iPhone 12 Pro Max",
-      "iPhone 12 Pro",
-      "iPhone 12",
-      "iPhone 12 Mini",
-      // iPhone 11 Series
-      "iPhone 11 Pro Max",
-      "iPhone 11 Pro",
-      "iPhone 11",
-      // iPhone X/XS/XR Series
-      "iPhone XS Max",
-      "iPhone XS",
-      "iPhone XR",
-      "iPhone X",
-      // iPhone 8/SE Series
-      "iPhone 8 Plus",
-      "iPhone 8",
-      "iPhone SE (2022)",
-      "iPhone SE (2020)",
-    ],
-    Samsung: [
-      "Galaxy S24 Ultra",
-      "Galaxy S24+",
-      "Galaxy S24",
-      "Galaxy S23 Ultra",
-      "Galaxy S23+",
-      "Galaxy S23",
-      "Galaxy S22 Ultra",
-      "Galaxy S22+",
-      "Galaxy S22",
-      "Galaxy S21 Ultra",
-      "Galaxy S21+",
-      "Galaxy S21",
-      "Galaxy Note 20 Ultra",
-      "Galaxy Note 20",
-      "Galaxy A54",
-      "Galaxy A34",
-      "Galaxy A24",
-      "Galaxy A14",
-    ],
-    Huawei: [
-      "P60 Pro",
-      "P60",
-      "P50 Pro",
-      "P50",
-      "P40 Pro",
-      "P40",
-      "Mate 50 Pro",
-      "Mate 50",
-      "Mate 40 Pro",
-      "Mate 40",
-      "Nova 11",
-      "Nova 10",
-      "Y70",
-      "Y60",
-    ],
-    // Add more brands as needed
-  };
-
-  const models = modelData[selectedBrand] || [];
-  const filteredModels = models.filter((model) =>
-    model.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredModels = (models || []).filter((m) =>
+    (m.name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleModelSelect = (model) => {
-    setSelectedModel(model);
-    localStorage.setItem("selectedModel", model);
+    setSelectedModel(model.name);
+    localStorage.setItem("selectedModel", model.name);
+    localStorage.setItem("selectedModelId", model._id);
     navigate("/repair");
   };
 
   const handleSearch = () => {
     if (searchTerm.trim() && filteredModels.length > 0) {
-      setSelectedModel(filteredModels[0]);
-      localStorage.setItem("selectedModel", filteredModels[0]);
+      const first = filteredModels[0];
+      setSelectedModel(first.name);
+      localStorage.setItem("selectedModel", first.name);
+      localStorage.setItem("selectedModelId", first._id);
       navigate("/repair");
     }
   };
@@ -146,11 +97,16 @@ const ModelSelection = () => {
             <div className="brand-header">
               <div className="brand-info">
                 <div className="brand-icon">
-                  {selectedBrand === "Apple" && "🍎"}
-                  {selectedBrand === "Samsung" && "📱"}
-                  {selectedBrand === "Huawei" && "📲"}
-                  {!["Apple", "Samsung", "Huawei"].includes(selectedBrand) &&
-                    "📱"}
+                  {selectedBrandLogo ? (
+                    <img
+                      src={selectedBrandLogo}
+                      alt={selectedBrand}
+                      style={{ width: 56, height: 56, objectFit: "contain" }}
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                  ) : (
+                    <span>📱</span>
+                  )}
                 </div>
                 <div>
                   <h2 className="brand-title">{selectedBrand}</h2>
@@ -187,17 +143,38 @@ const ModelSelection = () => {
               </p>
 
               <div className="models-grid">
-                {filteredModels.length > 0 ? (
+                {loading ? (
+                  <div className="no-models">
+                    <p>Modellen laden...</p>
+                  </div>
+                ) : filteredModels.length > 0 ? (
                   filteredModels.map((model) => (
                     <div
-                      key={model}
+                      key={model._id}
                       className={`model-card ${
-                        selectedModel === model ? "selected" : ""
+                        selectedModel === model.name ? "selected" : ""
                       }`}
                       onClick={() => handleModelSelect(model)}
                     >
-                      <div className="model-image">📱</div>
-                      <span className="model-name">{model}</span>
+                      <div className="model-image">
+                        {model.imageUrl ? (
+                          <img
+                            src={model.imageUrl}
+                            alt={model.name}
+                            style={{
+                              width: 48,
+                              height: 48,
+                              objectFit: "contain",
+                            }}
+                            onError={(e) =>
+                              (e.currentTarget.style.display = "none")
+                            }
+                          />
+                        ) : (
+                          <span>📱</span>
+                        )}
+                      </div>
+                      <span className="model-name">{model.name}</span>
                     </div>
                   ))
                 ) : (

@@ -8,6 +8,7 @@ import ProgressBar from "./ProgressBar";
 const Homepage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedBrandId, setSelectedBrandId] = useState("");
   const navigate = useNavigate();
 
   const [brands, setBrands] = useState([]);
@@ -23,20 +24,29 @@ const Homepage = () => {
   }, []);
 
   const handleBrandSelect = (brand) => {
-    setSelectedBrand(brand);
-    localStorage.setItem("selectedBrand", brand);
+    // brand is the full object
+    setSelectedBrand(brand.name);
+    setSelectedBrandId(brand._id);
+    localStorage.setItem("selectedBrand", brand.name);
+    localStorage.setItem("selectedBrandId", brand._id);
+    if (brand.logo) localStorage.setItem("selectedBrandLogo", brand.logo);
     navigate("/model");
   };
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
       // Auto-detect brand from search term
-      const detectedBrand = brands.find((brand) =>
-        searchTerm.toLowerCase().includes(brand.name.toLowerCase())
+      const detectedBrand = brands.find((b) =>
+        searchTerm.toLowerCase().includes((b.name || b.merk)?.toLowerCase())
       );
       if (detectedBrand) {
-        setSelectedBrand(detectedBrand.name);
-        localStorage.setItem("selectedBrand", detectedBrand.name);
+        const name = detectedBrand.name || detectedBrand.merk;
+        setSelectedBrand(name);
+        setSelectedBrandId(detectedBrand._id);
+        localStorage.setItem("selectedBrand", name);
+        localStorage.setItem("selectedBrandId", detectedBrand._id);
+        if (detectedBrand.logo)
+          localStorage.setItem("selectedBrandLogo", detectedBrand.logo);
       }
       navigate("/model");
     }
@@ -45,6 +55,14 @@ const Homepage = () => {
   const handleContinue = () => {
     if (selectedBrand) {
       localStorage.setItem("selectedBrand", selectedBrand);
+      if (selectedBrandId)
+        localStorage.setItem("selectedBrandId", selectedBrandId);
+      // if brandId missing (e.g., manual selection), try to find by name
+      if (!selectedBrandId) {
+        const match = brands.find((b) => (b.name || b.merk) === selectedBrand);
+        if (match?._id) localStorage.setItem("selectedBrandId", match._id);
+        if (match?.logo) localStorage.setItem("selectedBrandLogo", match.logo);
+      }
       navigate("/model");
     }
   };
@@ -113,7 +131,7 @@ const Homepage = () => {
                     className={`brand-card ${
                       selectedBrand === brand.name ? "selected" : ""
                     }`}
-                    onClick={() => handleBrandSelect(brand.name)}
+                    onClick={() => handleBrandSelect(brand)}
                   >
                     <div className="brand-logo">
                       {brand.logo && /^https?:\/\//i.test(brand.logo) ? (
