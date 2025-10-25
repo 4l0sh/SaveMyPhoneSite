@@ -1,0 +1,15 @@
+# Vite/React Router SPA fallback for Apache
+# Place this .htaccess in the same directory as your built index.html (site root on the host)
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve existing files and folders directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Otherwise, send everything to index.html so the SPA can route it
+  RewriteRule ^ index.html [L]
+</IfModule>

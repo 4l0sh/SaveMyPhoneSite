@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { apiFetch } from "../api";
 import "./login.css";
 
 const Login = () => {
@@ -14,7 +15,7 @@ const Login = () => {
       return;
     }
 
-    fetch("http://localhost:3000/login", {
+    apiFetch("/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

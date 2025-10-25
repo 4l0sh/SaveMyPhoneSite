@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../api";
 import "./HomePage.css";
 import ProgressBar from "./ProgressBar";
 
@@ -19,7 +20,7 @@ const Homepage = () => {
     const dismissed = localStorage.getItem("devNoticeDismissed");
     if (!dismissed) setShowNotice(true);
 
-    fetch("http://localhost:3000/brands")
+    apiFetch("/brands")
       .then((res) => res.json())
       .then((data) => {
         setBrands(data);

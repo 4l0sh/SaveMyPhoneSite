@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../api";
 
 // Minimal, focused admin form to add a new model with prices for a selected brand
 const Admin = () => {
@@ -23,8 +24,8 @@ const Admin = () => {
     setLoading(true);
     setError("");
     Promise.all([
-      fetch("http://localhost:3000/brands").then((r) => r.json()),
-      fetch("http://localhost:3000/repairs").then((r) => r.json()),
+      apiFetch("/brands").then((r) => r.json()),
+      apiFetch("/repairs").then((r) => r.json()),
     ])
       .then(([brandsData, repairsData]) => {
         if (!mounted) return;
@@ -76,7 +77,7 @@ const Admin = () => {
         reparaties,
       };
 
-      const res = await fetch("http://localhost:3000/models", {
+      const res = await apiFetch("/models", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

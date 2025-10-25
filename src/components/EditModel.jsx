@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { apiFetch, apiUrl } from "../api";
 
 // Page to edit an existing model's repair prices
 const EditModel = () => {
@@ -27,7 +28,7 @@ const EditModel = () => {
     let mounted = true;
     setLoading(true);
     setError("");
-    fetch("http://localhost:3000/brands")
+    apiFetch("/brands")
       .then((r) => r.json())
       .then((data) => {
         if (!mounted) return;
@@ -47,7 +48,7 @@ const EditModel = () => {
   // Load models when brand changes or search term changes
   useEffect(() => {
     if (!brandId) return;
-    const url = new URL("http://localhost:3000/models");
+    const url = new URL(apiUrl("/models"));
     url.searchParams.set("brandId", brandId);
     if (search) url.searchParams.set("q", search);
     fetch(url.toString())
@@ -60,7 +61,7 @@ const EditModel = () => {
   useEffect(() => {
     if (!modelId) return;
     setError("");
-    fetch(`http://localhost:3000/models/${encodeURIComponent(modelId)}/repairs`)
+    fetch(apiUrl(`/models/${encodeURIComponent(modelId)}/repairs`))
       .then((r) => {
         if (!r.ok) throw new Error("Kon reparaties niet laden");
         return r.json();
@@ -99,8 +100,8 @@ const EditModel = () => {
         .map(([typeNaam, prijsStr]) => ({ typeNaam, prijs: Number(prijsStr) }))
         .filter((r) => Number.isFinite(r.prijs) && r.prijs >= 0);
 
-      const res = await fetch(
-        `http://localhost:3000/models/${encodeURIComponent(modelId)}/repairs`,
+      const res = await apiFetch(
+        `/models/${encodeURIComponent(modelId)}/repairs`,
         {
           method: "PUT",
           headers: {
