@@ -228,12 +228,20 @@ router.get("/repairs", async (req, res) => {
   try {
     const reps = await db
       .collection("reparatietypes")
-      .find(
-        {},
-        { projection: { naam: 1, beschrijving: 1, duurMinuten: 1, icoon: 1 } }
-      )
-      .sort({ naam: 1 })
+      .aggregate([
+        {
+          $project: {
+            naam: 1,
+            beschrijving: 1,
+            duurMinuten: 1,
+            icoon: 1,
+            sortOrder: { $ifNull: ["$sortOrder", 1000000] },
+          },
+        },
+        { $sort: { sortOrder: 1, naam: 1 } },
+      ])
       .toArray();
+
     const normalized = reps.map((r) => ({
       id: String(r._id),
       _id: String(r._id),
@@ -315,6 +323,34 @@ router.post("/repairs", authenticate, async (req, res) => {
 });
 
 // update a repair type (admin only)
+// Reorder repair types (admin only). Body: { order: [id1, id2, ...] }
+router.put("/repairs/reorder", authenticate, async (req, res) => {
+  try {
+    const order = Array.isArray(req.body?.order) ? req.body.order : [];
+    if (!order.length) {
+      return res.status(400).json({ error: "order array required" });
+    }
+    // Build bulk updates to set sortOrder by index
+    const ops = [];
+    for (let i = 0; i < order.length; i++) {
+      const id = order[i];
+      if (!ObjectId.isValid(id)) continue;
+      ops.push({
+        updateOne: {
+          filter: { _id: new ObjectId(id) },
+          update: { $set: { sortOrder: i } },
+        },
+      });
+    }
+    if (!ops.length) return res.status(400).json({ error: "No valid ids" });
+    const result = await db.collection("reparatietypes").bulkWrite(ops);
+    return res.json({ ok: true, modified: result.modifiedCount ?? 0 });
+  } catch (err) {
+    console.error("PUT /repairs/reorder error:", err);
+    res.status(500).json({ error: "Failed to reorder repairs" });
+  }
+});
+
 router.put("/repairs/:id", authenticate, async (req, res) => {
   try {
     const body = req.body || {};
@@ -384,10 +420,18 @@ router.get("/models/:id/repairs", async (req, res) => {
 
     const repTypes = await db
       .collection("reparatietypes")
-      .find(
-        {},
-        { projection: { naam: 1, beschrijving: 1, duurMinuten: 1, icoon: 1 } }
-      )
+      .aggregate([
+        {
+          $project: {
+            naam: 1,
+            beschrijving: 1,
+            duurMinuten: 1,
+            icoon: 1,
+            sortOrder: { $ifNull: ["$sortOrder", 1000000] },
+          },
+        },
+        { $sort: { sortOrder: 1, naam: 1 } },
+      ])
       .toArray();
 
     // Build maps for price and hidden sentinel. We use 999 as a sentinel to hide an option.
