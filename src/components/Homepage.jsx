@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Homepage.css";
+import "./HomePage.css";
 import ProgressBar from "./ProgressBar";
 
 const Homepage = () => {
@@ -12,8 +12,13 @@ const Homepage = () => {
   const navigate = useNavigate();
 
   const [brands, setBrands] = useState([]);
+  const [showNotice, setShowNotice] = useState(false);
 
   useEffect(() => {
+    // Show development notice unless dismissed before
+    const dismissed = localStorage.getItem("devNoticeDismissed");
+    if (!dismissed) setShowNotice(true);
+
     fetch("http://localhost:3000/brands")
       .then((res) => res.json())
       .then((data) => {
@@ -22,6 +27,12 @@ const Homepage = () => {
       })
       .catch((err) => console.error("Error fetching brands:", err));
   }, []);
+
+  const closeNotice = () => {
+    setShowNotice(false);
+    // remember dismissal
+    localStorage.setItem("devNoticeDismissed", String(Date.now()));
+  };
 
   const handleBrandSelect = (brand) => {
     // brand is the full object
@@ -69,6 +80,38 @@ const Homepage = () => {
 
   return (
     <div className="homepage">
+      {showNotice && (
+        <div
+          className="dev-notice-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dev-notice-title"
+        >
+          <div className="dev-notice-modal">
+            <button
+              className="dev-notice-close"
+              aria-label="Sluiten"
+              onClick={closeNotice}
+            >
+              ×
+            </button>
+            <h3 id="dev-notice-title">Website in ontwikkeling</h3>
+            <p>
+              Deze website is nog in ontwikkeling. Heb je vragen? Bel ons op{" "}
+              <a href="tel:0365256149">036 525 6149</a> of stuur een WhatsApp
+              bericht naar{" "}
+              <a
+                href="https://wa.me/31620808787"
+                target="_blank"
+                rel="noreferrer"
+              >
+                +31 6 2080 8787
+              </a>
+              .
+            </p>
+          </div>
+        </div>
+      )}
       <ProgressBar currentStep={1} />
 
       <header className="hero-section">
@@ -162,6 +205,83 @@ const Homepage = () => {
             )}
           </div>
         </div>
+        {/* SEO content block */}
+        <section className="seo-section">
+          <div className="container">
+            <h2 className="seo-title">
+              Smartphone- en tabletreparatie in Almere
+            </h2>
+            <p className="seo-paragraph">
+              Bij Save my Phone in Almere helpen we je snel met reparaties voor
+              iPhone, Samsung en andere smartphones en tablets. Door onze
+              jarenlange ervaring lossen we vrijwel elke klacht vakkundig op en
+              denken we met je mee over de slimste keuze: repareren of
+              vervangen. We werken met kwaliteitsonderdelen en duidelijke
+              communicatie, zodat je precies weet waar je aan toe bent.
+            </p>
+
+            <h3 className="seo-subtitle">
+              Scherpe prijzen en transparant advies
+            </h3>
+            <p className="seo-paragraph">
+              Onze tarieven zijn gebaseerd op de inkoop van onderdelen en de
+              benodigde werktijd. Geen kleine lettertjes: je hoort de prijs
+              vooraf en we repareren pas na akkoord. Populaire reparaties zoals{" "}
+              iPhone schermen en batterijen zijn vaak direct uit voorraad
+              leverbaar.
+            </p>
+
+            <h3 className="seo-subtitle">
+              Je weet altijd waar je aan toe bent
+            </h3>
+            <p className="seo-paragraph">
+              Twijfel je over de staat van je toestel? Loop gerust binnen voor
+              een gratis check. We onderzoeken het probleem, leggen de opties
+              uit en geven eerlijk advies. Is repareren niet logisch, dan zeggen
+              we dat ook.
+            </p>
+
+            <h3 className="seo-subtitle">Zes dagen per week geopend</h3>
+            <p className="seo-paragraph">
+              We zijn van maandag tot en met zaterdag geopend. Veel reparaties
+              zijn klaar terwijl je wacht (afhankelijk van voorraad) — ideaal
+              als je snel weer bereikbaar wilt zijn.
+            </p>
+
+            <div className="seo-features">
+              <div className="seo-feature">
+                <div className="seo-icon">🧪</div>
+                <h4>Gratis reparatiecheck</h4>
+                <p>
+                  We onderzoeken je toestel gratis en bespreken vooraf de
+                  kosten.
+                </p>
+              </div>
+              <div className="seo-feature">
+                <div className="seo-icon">🌟</div>
+                <h4>100% service</h4>
+                <p>
+                  Vriendelijke service, heldere uitleg en garantie op onze
+                  werkzaamheden.
+                </p>
+              </div>
+              <div className="seo-feature">
+                <div className="seo-icon">⏱️</div>
+                <h4>Binnen 60 min. klaar</h4>
+                <p>
+                  Veelvoorkomende reparaties zijn vaak binnen een uur gereed.
+                </p>
+              </div>
+              <div className="seo-feature">
+                <div className="seo-icon">🛡️</div>
+                <h4>6 maanden garantie</h4>
+                <p>
+                  Op onderdelen en arbeid, volgens onze garantievoorwaarden.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="footer">
