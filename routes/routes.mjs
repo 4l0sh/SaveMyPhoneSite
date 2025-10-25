@@ -46,8 +46,16 @@ router.get("/brands", async (req, res) => {
   try {
     const raw = await db
       .collection("merken")
-      .find({}, { projection: { merk: 1, logo: 1 } })
-      .sort({ merk: 1 })
+      .aggregate([
+        {
+          $project: {
+            merk: 1,
+            logo: 1,
+            sortOrder: { $ifNull: ["$sortOrder", 1000000] },
+          },
+        },
+        { $sort: { sortOrder: 1, merk: 1 } },
+      ])
       .toArray();
 
     const brands = raw.map(({ _id, merk, logo }) => ({
@@ -62,24 +70,59 @@ router.get("/brands", async (req, res) => {
   }
 });
 
+// Reorder brands (admin only). Body: { order: [brandId1, brandId2, ...] }
+router.put("/brands/reorder", authenticate, async (req, res) => {
+  try {
+    const order = Array.isArray(req.body?.order) ? req.body.order : [];
+    if (!order.length)
+      return res.status(400).json({ error: "order array required" });
+    const ops = [];
+    for (let i = 0; i < order.length; i++) {
+      const id = order[i];
+      if (!ObjectId.isValid(id)) continue;
+      ops.push({
+        updateOne: {
+          filter: { _id: new ObjectId(id) },
+          update: { $set: { sortOrder: i } },
+        },
+      });
+    }
+    if (!ops.length) return res.status(400).json({ error: "No valid ids" });
+    const result = await db.collection("merken").bulkWrite(ops);
+    return res.json({ ok: true, modified: result.modifiedCount ?? 0 });
+  } catch (err) {
+    console.error("PUT /brands/reorder error:", err);
+    res.status(500).json({ error: "Failed to reorder brands" });
+  }
+});
+
 // get models by brand ID (optional q for search)
 router.get("/models", async (req, res) => {
   try {
     const { brandId, q } = req.query;
-    const filter = {};
+    const match = {};
     if (brandId) {
       try {
-        filter.merkId = new ObjectId(brandId);
+        match.merkId = new ObjectId(brandId);
       } catch (e) {
         return res.status(400).json({ error: "Invalid brandId" });
       }
     }
-    if (q) filter.model = { $regex: q, $options: "i" };
+    if (q) match.model = { $regex: q, $options: "i" };
 
     const docs = await db
       .collection("modellen")
-      .find(filter, { projection: { model: 1, afbeeldingUrl: 1 } })
-      .sort({ model: 1 })
+      .aggregate([
+        { $match: match },
+        {
+          $project: {
+            model: 1,
+            afbeeldingUrl: 1,
+            sortOrder: { $ifNull: ["$sortOrder", 1000000] },
+          },
+        },
+        { $sort: { sortOrder: 1, model: 1 } },
+      ])
       .toArray();
 
     const models = docs.map((d) => ({
@@ -91,6 +134,57 @@ router.get("/models", async (req, res) => {
   } catch (err) {
     console.error("/models error:", err);
     res.status(500).json({ error: "Failed to fetch models" });
+  }
+});
+
+// Reorder models within a brand (admin only). Body: { brandId, order: [modelId1, modelId2, ...] }
+router.put("/models/reorder", authenticate, async (req, res) => {
+  try {
+    const brandId = (req.body?.brandId ?? "").toString();
+    const order = Array.isArray(req.body?.order) ? req.body.order : [];
+    if (!ObjectId.isValid(brandId))
+      return res.status(400).json({ error: "Invalid brandId" });
+    if (!order.length)
+      return res.status(400).json({ error: "order array required" });
+
+    const merkId = new ObjectId(brandId);
+    // Optional consistency check: ensure ids belong to the brand
+    const existing = await db
+      .collection("modellen")
+      .find(
+        {
+          _id: {
+            $in: order.filter(ObjectId.isValid).map((id) => new ObjectId(id)),
+          },
+        },
+        { projection: { _id: 1, merkId: 1 } }
+      )
+      .toArray();
+    const validIds = new Set(
+      existing
+        .filter((m) => String(m.merkId) === String(merkId))
+        .map((m) => String(m._id))
+    );
+
+    const ops = [];
+    for (let i = 0; i < order.length; i++) {
+      const id = order[i];
+      if (!ObjectId.isValid(id)) continue;
+      if (!validIds.has(String(id))) continue;
+      ops.push({
+        updateOne: {
+          filter: { _id: new ObjectId(id) },
+          update: { $set: { sortOrder: i } },
+        },
+      });
+    }
+    if (!ops.length)
+      return res.status(400).json({ error: "No valid ids for brand" });
+    const result = await db.collection("modellen").bulkWrite(ops);
+    return res.json({ ok: true, modified: result.modifiedCount ?? 0 });
+  } catch (err) {
+    console.error("PUT /models/reorder error:", err);
+    res.status(500).json({ error: "Failed to reorder models" });
   }
 });
 

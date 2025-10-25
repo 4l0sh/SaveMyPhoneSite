@@ -143,6 +143,34 @@ const Admin = () => {
           Reparatietypes beheren
         </a>
         <a
+          href="/admin/brands/order"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+          }}
+        >
+          Merken volgorde
+        </a>
+        <a
+          href="/admin/models/order"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+          }}
+        >
+          Modellen volgorde
+        </a>
+        <a
           href="/admin/repairs/new"
           style={{
             background: "#eee",
