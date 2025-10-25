@@ -15,6 +15,9 @@ const RepairSelection = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // Show all non-hidden repairs; if prijs is null, show "Prijs op aanvraag"
+  const visibleRepairs = (repairs || []).filter((r) => !r.hidden);
+
   useEffect(() => {
     const brand = localStorage.getItem("selectedBrand");
     const modelName = localStorage.getItem("selectedModel");
@@ -86,9 +89,7 @@ const RepairSelection = () => {
     }
   };
 
-  const formatPrice = (price) => {
-    return `€${price}`;
-  };
+  const formatPrice = (price) => `€${price}`;
 
   const renderRepairPrice = (repair) => {
     if (repair.prijs != null) {
@@ -134,12 +135,12 @@ const RepairSelection = () => {
                     <div className="no-models">
                       <p>{error}</p>
                     </div>
-                  ) : repairs.length === 0 ? (
+                  ) : visibleRepairs.length === 0 ? (
                     <div className="no-models">
-                      <p>Geen reparaties gevonden</p>
+                      <p>Geen reparaties met prijs beschikbaar</p>
                     </div>
                   ) : (
-                    repairs.map((repair) => {
+                    visibleRepairs.map((repair) => {
                       const isSelected = selectedRepairs.some(
                         (r) => r.id === repair.id
                       );

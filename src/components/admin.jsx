@@ -128,6 +128,34 @@ const Admin = () => {
         >
           Bewerk prijzen
         </a>
+        <a
+          href="/admin/repairs"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+          }}
+        >
+          Reparatietypes beheren
+        </a>
+        <a
+          href="/admin/repairs/new"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+          }}
+        >
+          Nieuw reparatietype
+        </a>
       </div>
 
       <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>

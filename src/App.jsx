@@ -10,6 +10,9 @@ import StatusPage from "./components/StatusPage.jsx";
 import Login from "./components/login.jsx";
 import Admin from "./components/admin.jsx";
 import EditModel from "./components/EditModel.jsx";
+import AddRepairType from "./components/AddRepairType.jsx";
+import RepairTypesList from "./components/RepairTypesList.jsx";
+import EditRepairType from "./components/EditRepairType.jsx";
 function App() {
   return (
     <Router>
@@ -23,6 +26,9 @@ function App() {
           <Route path="/savemyphone-wizard-login" element={<Login />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/edit" element={<EditModel />} />
+          <Route path="/admin/repairs/new" element={<AddRepairType />} />
+          <Route path="/admin/repairs" element={<RepairTypesList />} />
+          <Route path="/admin/repairs/:id/edit" element={<EditRepairType />} />
         </Routes>
       </div>
     </Router>
