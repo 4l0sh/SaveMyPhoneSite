@@ -2,14 +2,14 @@
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./App.css";
-import HomePage from "./components/HomePage";
-import ModelSelection from "./components/ModelSelection";
-import RepairSelection from "./components/RepairSelection";
-import BookingPage from "./components/BookingPage";
-import StatusPage from "./components/StatusPage";
-import Login from "./components/login";
-import Admin from "./components/admin";
-import EditModel from "./components/EditModel";
+import HomePage from "./components/HomePage.jsx";
+import ModelSelection from "./components/ModelSelection.jsx";
+import RepairSelection from "./components/RepairSelection.jsx";
+import BookingPage from "./components/BookingPage.jsx";
+import StatusPage from "./components/StatusPage.jsx";
+import Login from "./components/login.jsx";
+import Admin from "./components/admin.jsx";
+import EditModel from "./components/EditModel.jsx";
 function App() {
   return (
     <Router>

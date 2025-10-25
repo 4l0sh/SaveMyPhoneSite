@@ -10,7 +10,8 @@ import { fileURLToPath } from "url";
 dotenv.config();
 
 const app = express();
-const port = process.env.VITE_PORT || 3000;
+// Use PORT in hosting environments (Render/Heroku), fall back to dev vars
+const port = process.env.PORT || process.env.VITE_PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -18,9 +19,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/", router);
 
-// MongoDB connection
-const mongoUri =
-  "mongodb+srv://admin:Save261128@savemyphone.crauq01.mongodb.net/Savemyphone?retryWrites=true&w=majority";
+// MongoDB connection (from environment only)
+const mongoUri = process.env.MONGO_URI || process.env.VITE_MONGO_URI || "";
+if (!mongoUri) {
+  console.error(
+    "❌ Missing Mongo connection string. Set MONGO_URI (preferred) or VITE_MONGO_URI in your environment."
+  );
+  // Fail fast to avoid starting the server without a database
+  process.exit(1);
+}
 let db;
 
 MongoClient.connect(mongoUri)
