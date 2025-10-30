@@ -199,6 +199,20 @@ const Admin = () => {
           Model verwijderen
         </a>
         <a
+          href="/admin/move-model"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+          }}
+        >
+          Model naar ander merk
+        </a>
+        <a
           href="/admin/repairs/new"
           style={{
             background: "#eee",

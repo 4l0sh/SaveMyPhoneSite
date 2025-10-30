@@ -24,6 +24,7 @@ import ModelsOrder from "./components/ModelsOrder.jsx";
 import Contact from "./components/contact.jsx";
 import EditModelDetails from "./components/EditModelDetails.jsx";
 import DeleteModel from "./components/DeleteModel.jsx";
+import MoveModelBrand from "./components/MoveModelBrand.jsx";
 
 // Simple auth guard for admin routes
 function isTokenValid() {
@@ -143,6 +144,14 @@ function App() {
             element={
               <RequireAuth>
                 <DeleteModel />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/move-model"
+            element={
+              <RequireAuth>
+                <MoveModelBrand />
               </RequireAuth>
             }
           />

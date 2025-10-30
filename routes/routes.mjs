@@ -508,7 +508,14 @@ router.get("/models/:id/repairs", async (req, res) => {
       .collection("modellen")
       .findOne(
         { _id },
-        { projection: { model: 1, afbeeldingUrl: 1, reparaties: 1 } }
+        {
+          projection: {
+            model: 1,
+            apparaat: 1,
+            afbeeldingUrl: 1,
+            reparaties: 1,
+          },
+        }
       );
     if (!model) return res.status(404).json({ error: "Model niet gevonden" });
 
@@ -543,17 +550,34 @@ router.get("/models/:id/repairs", async (req, res) => {
     );
 
     // Device-specific screen type rules
-    // By request: iPads should show Touchscreen + LCD instead of Basic/Premium/Original scherm.
+    // By request: iPads should show Touchscreen + LCD instead of Basic/Premium/Origineel scherm.
     const nameLower = String(model.model || "").toLowerCase();
+    const apparaat = String(model.apparaat || "").toLowerCase();
     const isIpad =
-      /\bipad\b/i.test(model.model || "") || nameLower.startsWith("ipad");
-    const STANDARD_SCREEN_TYPES = new Set([
-      "basic scherm",
-      "premium scherm",
-      "originele scherm",
-    ]);
-    const IPAD_SCREEN_TYPES = new Set(["touchscreen", "lcd"]);
-    const blockSet = isIpad ? STANDARD_SCREEN_TYPES : IPAD_SCREEN_TYPES;
+      apparaat.includes("tablet") ||
+      /\bipad\b/i.test(model.model || "") ||
+      nameLower.startsWith("ipad");
+
+    // Helper matchers (normalized lowercase key)
+    const isStandardScreen = (key) => {
+      if (!key) return false;
+      return (
+        key === "basic scherm" ||
+        key === "premium scherm" ||
+        key === "origineel scherm" ||
+        key === "originele scherm" ||
+        (key.includes("scherm") &&
+          (key.includes("basic") ||
+            key.includes("premium") ||
+            key.includes("origineel") ||
+            key.includes("original") ||
+            key.includes("oem")))
+      );
+    };
+    const isIpadScreenSpecific = (key) => {
+      if (!key) return false;
+      return key === "touchscreen" || key === "lcd" || key === "lcd scherm";
+    };
 
     const merged = repTypes.map((r) => {
       const key = String(r.naam).toLowerCase();
@@ -561,7 +585,9 @@ router.get("/models/:id/repairs", async (req, res) => {
       const hidden = hiddenSet.has(key);
       const prijs = hidden ? null : raw ?? null;
       // Apply device-specific visibility rules on top of the sentinel
-      const extraHidden = blockSet.has(key);
+      const extraHidden = isIpad
+        ? isStandardScreen(key)
+        : isIpadScreenSpecific(key);
       return {
         id: r.naam,
         naam: r.naam,
