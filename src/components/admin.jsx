@@ -113,7 +113,7 @@ const Admin = () => {
         Voeg een nieuw model toe aan een merk en stel de prijzen in per
         reparatietype.
       </p>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <a
           href="/admin/edit"
           style={{
@@ -169,6 +169,34 @@ const Admin = () => {
           }}
         >
           Modellen volgorde
+        </a>
+        <a
+          href="/admin/models/edit-details"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+          }}
+        >
+          Modelgegevens bewerken
+        </a>
+        <a
+          href="/admin/models/delete"
+          style={{
+            background: "#fee",
+            border: "1px solid #f5a09b",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#b00020",
+            display: "inline-block",
+          }}
+        >
+          Model verwijderen
         </a>
         <a
           href="/admin/repairs/new"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiUrl } from "../api";
+import { getJson } from "../api";
 import "./RepairSelection.css";
 import ProgressBar from "./ProgressBar";
 
@@ -33,11 +33,10 @@ const RepairSelection = () => {
     // Load merged repairs for the selected model from backend
     setLoading(true);
     setError("");
-    fetch(apiUrl(`/models/${encodeURIComponent(modelId)}/repairs`))
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load repairs");
-        return res.json();
-      })
+    getJson(`/models/${encodeURIComponent(modelId)}/repairs`, {
+      retries: 4,
+      retryDelay: 1000,
+    })
       .then((payload) => {
         // payload: { modelId, modelNaam, imageUrl, reparaties: [...] }
         if (payload?.modelNaam) setSelectedModel(payload.modelNaam);

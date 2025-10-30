@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../api";
+import { getJson } from "../api";
 import "./HomePage.css";
 import ProgressBar from "./ProgressBar";
 
@@ -20,8 +20,7 @@ const Homepage = () => {
     const dismissed = localStorage.getItem("devNoticeDismissed");
     if (!dismissed) setShowNotice(true);
 
-    apiFetch("/brands")
-      .then((res) => res.json())
+    getJson("/brands", { retries: 4, retryDelay: 1000 })
       .then((data) => {
         setBrands(data);
         console.log("Fetched brands:", data);
@@ -134,9 +133,7 @@ const Homepage = () => {
       <main className="main-content">
         <div className="container">
           <div className="selection-card">
-            <div className="back-arrow">
-              <span className="arrow">←</span>
-            </div>
+            {/* Removed back arrow on homepage (no page to go back to) */}
 
             <h2 className="selection-title">
               Welk <span className="highlight">model</span> heb je?
@@ -242,16 +239,19 @@ const Homepage = () => {
               we dat ook.
             </p>
 
-            <h3 className="seo-subtitle">Zes dagen per week geopend</h3>
+            <h3 className="seo-subtitle">Zeven dagen per week geopend</h3>
             <p className="seo-paragraph">
-              We zijn van maandag tot en met zaterdag geopend. Veel reparaties
+              We zijn van maandag tot en met zondag geopend. Veel reparaties
               zijn klaar terwijl je wacht (afhankelijk van voorraad) — ideaal
               als je snel weer bereikbaar wilt zijn.
             </p>
 
             <div className="seo-features">
               <div className="seo-feature">
-                <div className="seo-icon">🧪</div>
+                <div className="seo-icon">
+                  {" "}
+                  <i class="fa-solid fa-screwdriver-wrench icon"></i>
+                </div>
                 <h4>Gratis reparatiecheck</h4>
                 <p>
                   We onderzoeken je toestel gratis en bespreken vooraf de
@@ -259,7 +259,9 @@ const Homepage = () => {
                 </p>
               </div>
               <div className="seo-feature">
-                <div className="seo-icon">🌟</div>
+                <div className="seo-icon">
+                  <i class="fa-solid fa-star icon"></i>
+                </div>
                 <h4>100% service</h4>
                 <p>
                   Vriendelijke service, heldere uitleg en garantie op onze
@@ -267,14 +269,18 @@ const Homepage = () => {
                 </p>
               </div>
               <div className="seo-feature">
-                <div className="seo-icon">⏱️</div>
+                <div className="seo-icon">
+                  <i class="fa-solid fa-hourglass-start icon"></i>
+                </div>
                 <h4>Binnen 60 min. klaar</h4>
                 <p>
                   Veelvoorkomende reparaties zijn vaak binnen een uur gereed.
                 </p>
               </div>
               <div className="seo-feature">
-                <div className="seo-icon">🛡️</div>
+                <div className="seo-icon">
+                  <i class="fa-solid fa-shield icon"></i>
+                </div>
                 <h4>6 maanden garantie</h4>
                 <p>
                   Op onderdelen en arbeid, volgens onze garantievoorwaarden.
@@ -300,26 +306,35 @@ const Homepage = () => {
             <div className="footer-section">
               <h3>Onze locatie</h3>
               <p>
-                123 Repair Street
+                Schutterstraat 42b
                 <br />
-                Amsterdam, 1012 AB
+                Almere, 1315 VJ
                 <br />
                 Nederland
                 <br />
-                <strong>Telefoon:</strong> +31 20 123 4567
+                <i class="fa-solid fa-phone-volume call-icon"></i>{" "}
+                <a href="tel:0365256149">036 525 6149</a>
                 <br />
-                <strong>E-mail:</strong> info@savemyphone.nl
+                <i class="fa-brands fa-whatsapp whatsapp-icon"></i>{" "}
+                <a href="https://wa.me/0365256149">036 525 6149</a>
+                <br />
+                <i class="fa-solid fa-envelope call-icon"></i>{" "}
+                <a href="mailto:info@savemysmartphone.nl">
+                  info@savemysmartphone.nl
+                </a>
               </p>
             </div>
 
             <div className="footer-section">
               <h3>Openingstijden</h3>
               <p>
-                Maandag - vrijdag: 9:00 - 18:00
+                Maandag: 12:00 - 18:00
                 <br />
-                Zaterdag: 10:00 - 16:00
+                Dinsdag - Zaterdag : 10:00 - 16:00
                 <br />
-                Zondag: Gesloten
+                Donderdag: 10:00 - 20:00
+                <br />
+                Zondag: 12:00 - 17:00
               </p>
             </div>
           </div>

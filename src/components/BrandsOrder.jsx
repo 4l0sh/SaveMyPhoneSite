@@ -74,6 +74,19 @@ const BrandsOrder = () => {
           margin: "8px 0 12px",
         }}
       >
+        <a
+          href="/admin"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+          }}
+        >
+          Terug naar Admin
+        </a>
         <button
           onClick={saveOrder}
           disabled={!dirty || saving}

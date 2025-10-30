@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch, apiUrl } from "../api";
+import { getJson } from "../api";
 import "./ModelSelection.css";
 import ProgressBar from "./ProgressBar";
 
@@ -27,8 +27,7 @@ const ModelSelection = () => {
 
     // If we don't have a logo in localStorage, fetch brands and resolve it
     if (!brandLogoLS) {
-      apiFetch("/brands")
-        .then((res) => res.json())
+      getJson("/brands", { retries: 4, retryDelay: 1000 })
         .then((list) => {
           const match = (list || []).find(
             (b) => String(b._id) === String(brandId)
@@ -45,10 +44,11 @@ const ModelSelection = () => {
     }
 
     setLoading(true);
-    const url = new URL(apiUrl("/models"));
-    url.searchParams.set("brandId", brandId);
-    fetch(url.toString())
-      .then((res) => res.json())
+    const q = searchTerm ? `&q=${encodeURIComponent(searchTerm)}` : "";
+    getJson(`/models?brandId=${encodeURIComponent(brandId)}${q}`, {
+      retries: 4,
+      retryDelay: 1000,
+    })
       .then((data) => setModels(data || []))
       .catch((err) => console.error("Error fetching models:", err))
       .finally(() => setLoading(false));

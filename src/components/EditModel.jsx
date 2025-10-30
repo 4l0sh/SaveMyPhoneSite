@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { apiFetch, apiUrl } from "../api";
+import { apiFetch, getJson } from "../api";
 
 // Page to edit an existing model's repair prices
 const EditModel = () => {
@@ -28,8 +28,7 @@ const EditModel = () => {
     let mounted = true;
     setLoading(true);
     setError("");
-    apiFetch("/brands")
-      .then((r) => r.json())
+    getJson("/brands", { retries: 4, retryDelay: 1000 })
       .then((data) => {
         if (!mounted) return;
         setBrands(Array.isArray(data) ? data : []);
@@ -48,11 +47,11 @@ const EditModel = () => {
   // Load models when brand changes or search term changes
   useEffect(() => {
     if (!brandId) return;
-    const url = new URL(apiUrl("/models"));
-    url.searchParams.set("brandId", brandId);
-    if (search) url.searchParams.set("q", search);
-    fetch(url.toString())
-      .then((r) => r.json())
+    const q = search ? `&q=${encodeURIComponent(search)}` : "";
+    getJson(`/models?brandId=${encodeURIComponent(brandId)}${q}`, {
+      retries: 4,
+      retryDelay: 1000,
+    })
       .then((data) => setModels(Array.isArray(data) ? data : []))
       .catch((e) => setError(e.message || "Kon modellen niet laden"));
   }, [brandId, search]);
@@ -61,11 +60,10 @@ const EditModel = () => {
   useEffect(() => {
     if (!modelId) return;
     setError("");
-    fetch(apiUrl(`/models/${encodeURIComponent(modelId)}/repairs`))
-      .then((r) => {
-        if (!r.ok) throw new Error("Kon reparaties niet laden");
-        return r.json();
-      })
+    getJson(`/models/${encodeURIComponent(modelId)}/repairs`, {
+      retries: 4,
+      retryDelay: 1000,
+    })
       .then((payload) => {
         const reps = Array.isArray(payload?.reparaties)
           ? payload.reparaties

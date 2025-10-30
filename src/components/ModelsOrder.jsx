@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { apiFetch, apiUrl } from "../api";
+import { apiFetch, getJson } from "../api";
 
 const ModelsOrder = () => {
   const [brands, setBrands] = useState([]);
@@ -14,8 +14,7 @@ const ModelsOrder = () => {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    apiFetch("/brands")
-      .then((r) => r.json())
+    getJson("/brands", { retries: 4, retryDelay: 1000 })
       .then((data) => setBrands(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);
@@ -24,10 +23,10 @@ const ModelsOrder = () => {
     if (!brandId) return;
     setLoading(true);
     setError("");
-    const url = new URL(apiUrl("/models"));
-    url.searchParams.set("brandId", brandId);
-    fetch(url.toString())
-      .then((r) => r.json())
+    getJson(`/models?brandId=${encodeURIComponent(brandId)}`, {
+      retries: 4,
+      retryDelay: 1000,
+    })
       .then((data) => setModels(Array.isArray(data) ? data : []))
       .catch((e) => setError(e.message || "Kon modellen niet laden"))
       .finally(() => setLoading(false));
@@ -81,6 +80,21 @@ const ModelsOrder = () => {
       <h1 style={{ marginBottom: 8 }}>Modellen volgorde</h1>
 
       <div style={{ marginBottom: 12 }}>
+        <a
+          href="/admin"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+            marginBottom: 8,
+          }}
+        >
+          Terug naar Admin
+        </a>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
           Merk
         </label>
@@ -119,6 +133,19 @@ const ModelsOrder = () => {
               margin: "8px 0 12px",
             }}
           >
+            <a
+              href="/admin"
+              style={{
+                background: "#eee",
+                border: "1px solid #ccc",
+                padding: "8px 12px",
+                borderRadius: 8,
+                textDecoration: "none",
+                color: "#333",
+              }}
+            >
+              Terug naar Admin
+            </a>
             <button
               onClick={saveOrder}
               disabled={!dirty || saving || !brandId}

@@ -14,7 +14,24 @@
   width: 100%;
   min-height: 300px;
 }
-
+.icon {
+  font-size: 28px;
+  color: #ff6b35;
+}
+.whatsapp-icon {
+  font-size: 20px;
+  color: #25d366;
+  margin-right: 6px;
+}
+.call-icon {
+  font-size: 20px;
+  color: #ff6b35;
+  margin-right: 6px;
+}
+.footer-section a {
+  text-decoration: none;
+  color: #ff6b35;
+}
 .hero-content {
   max-width: 800px;
   margin: 0 auto;

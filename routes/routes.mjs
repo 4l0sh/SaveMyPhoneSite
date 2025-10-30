@@ -620,3 +620,163 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ error: "Failed to login" });
   }
 });
+
+// Get a single model's details
+router.get("/models/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid id" });
+    const _id = new ObjectId(id);
+    const m = await db
+      .collection("modellen")
+      .findOne(
+        { _id },
+        {
+          projection: {
+            merkId: 1,
+            model: 1,
+            apparaat: 1,
+            jaar: 1,
+            afbeeldingUrl: 1,
+          },
+        }
+      );
+    if (!m) return res.status(404).json({ error: "Model niet gevonden" });
+    return res.json({
+      _id: m._id,
+      brandId: m.merkId,
+      model: m.model,
+      apparaat: m.apparaat || null,
+      year: m.jaar ?? null,
+      imageUrl: m.afbeeldingUrl || null,
+    });
+  } catch (err) {
+    console.error("GET /models/:id error:", err);
+    res.status(500).json({ error: "Failed to fetch model" });
+  }
+});
+
+// Update a model's core fields (admin only)
+router.put("/models/:id", authenticate, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid id" });
+    const _id = new ObjectId(id);
+
+    const body = req.body || {};
+    const updates = {};
+
+    if (body.model != null) {
+      const name = String(body.model).trim();
+      if (!name)
+        return res.status(400).json({ error: "Modelnaam is verplicht" });
+      updates.model = name;
+    }
+
+    if (body.brandId != null) {
+      const s = String(body.brandId);
+      if (!ObjectId.isValid(s))
+        return res.status(400).json({ error: "Invalid brandId" });
+      updates.merkId = new ObjectId(s);
+    }
+
+    if (body.year !== undefined) {
+      if (body.year === null || body.year === "") {
+        updates.jaar = null;
+      } else {
+        const n = Number(body.year);
+        if (!Number.isFinite(n) || n < 1990 || n > 2100)
+          return res.status(400).json({ error: "Invalid year" });
+        updates.jaar = Math.round(n);
+      }
+    }
+
+    if (body.imageUrl !== undefined || body.afbeeldingUrl !== undefined) {
+      const url = (body.imageUrl ?? body.afbeeldingUrl ?? "").toString().trim();
+      updates.afbeeldingUrl = url || null;
+    }
+
+    if (body.apparaat !== undefined) {
+      const app = String(body.apparaat || "").trim();
+      updates.apparaat = app || "smartphone";
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: "Geen wijzigingen opgegeven" });
+    }
+
+    const result = await db
+      .collection("modellen")
+      .updateOne({ _id }, { $set: updates });
+    if (result.matchedCount === 0)
+      return res.status(404).json({ error: "Model niet gevonden" });
+    return res.json({ ok: true, updated: result.modifiedCount });
+  } catch (err) {
+    console.error("PUT /models/:id error:", err);
+    res.status(500).json({ error: "Failed to update model" });
+  }
+});
+
+// Delete a model (admin only)
+router.delete("/models/:id", authenticate, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid id" });
+    const _id = new ObjectId(id);
+    const del = await db.collection("modellen").deleteOne({ _id });
+    if (del.deletedCount === 0)
+      return res.status(404).json({ error: "Model niet gevonden" });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /models/:id error:", err);
+    res.status(500).json({ error: "Failed to delete model" });
+  }
+});
+
+// Contact form submission: store message for follow-up
+router.post("/contact", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const name = (body.name ?? "").toString().trim();
+    const email = (body.email ?? "").toString().trim().toLowerCase();
+    const phone = (body.phone ?? "").toString().trim();
+    const message = (body.message ?? "").toString().trim();
+
+    if (name.length < 2) {
+      return res.status(400).json({ error: "Naam is te kort" });
+    }
+    if (!email && !phone) {
+      return res.status(400).json({ error: "E-mail of telefoon is verplicht" });
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Ongeldig e-mailadres" });
+    }
+    if (message.length < 5) {
+      return res.status(400).json({ error: "Bericht is te kort" });
+    }
+
+    const doc = {
+      name,
+      email: email || null,
+      phone: phone || null,
+      message,
+      createdAt: new Date(),
+      meta: {
+        ip:
+          req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+          req.socket?.remoteAddress ||
+          null,
+        ua: req.headers["user-agent"] || null,
+      },
+    };
+
+    await db.collection("contact_messages").insertOne(doc);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /contact error:", err);
+    res.status(500).json({ error: "Kon bericht niet opslaan" });
+  }
+});

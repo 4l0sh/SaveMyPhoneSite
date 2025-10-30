@@ -67,7 +67,22 @@ const RepairTypesList = () => {
   return (
     <div style={{ maxWidth: 900, margin: "24px auto", padding: 16 }}>
       <h1 style={{ marginBottom: 8 }}>Reparatietypes</h1>
-      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+      <div
+        style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}
+      >
+        <a
+          href="/admin"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+          }}
+        >
+          Terug naar Admin
+        </a>
         <Link
           to="/admin/repairs/new"
           style={{
