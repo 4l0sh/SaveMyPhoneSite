@@ -542,11 +542,26 @@ router.get("/models/:id/repairs", async (req, res) => {
         .map(([name]) => name)
     );
 
+    // Device-specific screen type rules
+    // By request: iPads should show Touchscreen + LCD instead of Basic/Premium/Original scherm.
+    const nameLower = String(model.model || "").toLowerCase();
+    const isIpad =
+      /\bipad\b/i.test(model.model || "") || nameLower.startsWith("ipad");
+    const STANDARD_SCREEN_TYPES = new Set([
+      "basic scherm",
+      "premium scherm",
+      "originele scherm",
+    ]);
+    const IPAD_SCREEN_TYPES = new Set(["touchscreen", "lcd"]);
+    const blockSet = isIpad ? STANDARD_SCREEN_TYPES : IPAD_SCREEN_TYPES;
+
     const merged = repTypes.map((r) => {
       const key = String(r.naam).toLowerCase();
       const raw = priceMapRaw.get(key);
       const hidden = hiddenSet.has(key);
       const prijs = hidden ? null : raw ?? null;
+      // Apply device-specific visibility rules on top of the sentinel
+      const extraHidden = blockSet.has(key);
       return {
         id: r.naam,
         naam: r.naam,
@@ -554,7 +569,7 @@ router.get("/models/:id/repairs", async (req, res) => {
         duurMinuten: r.duurMinuten || null,
         icoon: r.icoon || "🛠️",
         prijs,
-        hidden,
+        hidden: hidden || extraHidden,
       };
     });
 
@@ -628,20 +643,18 @@ router.get("/models/:id", async (req, res) => {
     if (!ObjectId.isValid(id))
       return res.status(400).json({ error: "Invalid id" });
     const _id = new ObjectId(id);
-    const m = await db
-      .collection("modellen")
-      .findOne(
-        { _id },
-        {
-          projection: {
-            merkId: 1,
-            model: 1,
-            apparaat: 1,
-            jaar: 1,
-            afbeeldingUrl: 1,
-          },
-        }
-      );
+    const m = await db.collection("modellen").findOne(
+      { _id },
+      {
+        projection: {
+          merkId: 1,
+          model: 1,
+          apparaat: 1,
+          jaar: 1,
+          afbeeldingUrl: 1,
+        },
+      }
+    );
     if (!m) return res.status(404).json({ error: "Model niet gevonden" });
     return res.json({
       _id: m._id,
