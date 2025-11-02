@@ -316,7 +316,7 @@ const Homepage = () => {
                 <a href="tel:0365256149">036 525 6149</a>
                 <br />
                 <i class="fa-brands fa-whatsapp whatsapp-icon"></i>{" "}
-                <a href="https://wa.me/0365256149">036 525 6149</a>
+                <a href="https://wa.me/0620808787">06 20808787</a>
                 <br />
                 <i class="fa-solid fa-envelope call-icon"></i>{" "}
                 <a href="mailto:info@savemysmartphone.nl">
@@ -330,7 +330,7 @@ const Homepage = () => {
               <p>
                 Maandag: 12:00 - 18:00
                 <br />
-                Dinsdag - Zaterdag : 10:00 - 16:00
+                Dinsdag - Zaterdag : 10:00 - 18:00
                 <br />
                 Donderdag: 10:00 - 20:00
                 <br />

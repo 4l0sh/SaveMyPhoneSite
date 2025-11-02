@@ -20,6 +20,11 @@ function repairLookupQuery(idOrName) {
   return { naam: { $regex: `^${s}$`, $options: "i" } };
 }
 
+// Escape a string for safe use inside a RegExp pattern
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Simple JWT auth middleware for protected admin endpoints
 function authenticate(req, res, next) {
   try {
@@ -483,10 +488,46 @@ router.put("/repairs/:id", authenticate, async (req, res) => {
       icoon: icoon || "🛠️",
       duurMinuten,
     };
+    const oldName = String(current.naam || "");
+    const nameChanged =
+      oldName.localeCompare(naam, undefined, {
+        sensitivity: "accent",
+      }) !== 0;
+
     const result = await col.updateOne({ _id: current._id }, { $set: update });
     if (result.matchedCount === 0)
       return res.status(404).json({ error: "Niet gevonden" });
-    return res.json({ ok: true, updated: result.modifiedCount });
+
+    let modelsUpdated = 0;
+    if (nameChanged && oldName) {
+      try {
+        const pattern = `^${escapeRegex(oldName)}$`;
+        const mres = await db
+          .collection("modellen")
+          .updateMany(
+            { "reparaties.typeNaam": { $regex: pattern, $options: "i" } },
+            { $set: { "reparaties.$[elem].typeNaam": naam } },
+            {
+              arrayFilters: [
+                { "elem.typeNaam": { $regex: pattern, $options: "i" } },
+              ],
+            }
+          );
+        modelsUpdated = mres.modifiedCount || 0;
+      } catch (propErr) {
+        console.error(
+          "Failed to propagate repair type rename to models:",
+          propErr
+        );
+      }
+    }
+
+    return res.json({
+      ok: true,
+      updated: result.modifiedCount,
+      modelsUpdated,
+      renamed: nameChanged,
+    });
   } catch (err) {
     console.error("PUT /repairs/:id error:", err);
     res.status(500).json({ error: "Failed to update repair type" });
@@ -504,19 +545,17 @@ router.get("/models/:id/repairs", async (req, res) => {
       return res.status(400).json({ error: "Invalid model id" });
     }
 
-    const model = await db
-      .collection("modellen")
-      .findOne(
-        { _id },
-        {
-          projection: {
-            model: 1,
-            apparaat: 1,
-            afbeeldingUrl: 1,
-            reparaties: 1,
-          },
-        }
-      );
+    const model = await db.collection("modellen").findOne(
+      { _id },
+      {
+        projection: {
+          model: 1,
+          apparaat: 1,
+          afbeeldingUrl: 1,
+          reparaties: 1,
+        },
+      }
+    );
     if (!model) return res.status(404).json({ error: "Model niet gevonden" });
 
     const repTypes = await db
