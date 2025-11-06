@@ -502,17 +502,15 @@ router.put("/repairs/:id", authenticate, async (req, res) => {
     if (nameChanged && oldName) {
       try {
         const pattern = `^${escapeRegex(oldName)}$`;
-        const mres = await db
-          .collection("modellen")
-          .updateMany(
-            { "reparaties.typeNaam": { $regex: pattern, $options: "i" } },
-            { $set: { "reparaties.$[elem].typeNaam": naam } },
-            {
-              arrayFilters: [
-                { "elem.typeNaam": { $regex: pattern, $options: "i" } },
-              ],
-            }
-          );
+        const mres = await db.collection("modellen").updateMany(
+          { "reparaties.typeNaam": { $regex: pattern, $options: "i" } },
+          { $set: { "reparaties.$[elem].typeNaam": naam } },
+          {
+            arrayFilters: [
+              { "elem.typeNaam": { $regex: pattern, $options: "i" } },
+            ],
+          }
+        );
         modelsUpdated = mres.modifiedCount || 0;
       } catch (propErr) {
         console.error(
@@ -588,7 +586,6 @@ router.get("/models/:id/repairs", async (req, res) => {
         .map(([name]) => name)
     );
 
-    // Device-specific screen type rules
     // By request: iPads should show Touchscreen + LCD instead of Basic/Premium/Origineel scherm.
     const nameLower = String(model.model || "").toLowerCase();
     const apparaat = String(model.apparaat || "").toLowerCase();
