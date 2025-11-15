@@ -41,24 +41,217 @@ const Homepage = () => {
     localStorage.setItem("selectedBrand", brand.name);
     localStorage.setItem("selectedBrandId", brand._id);
     if (brand.logo) localStorage.setItem("selectedBrandLogo", brand.logo);
+    // Manual brand selection should start with a clean model list
+    try {
+      localStorage.removeItem("modelSearchTerm");
+      localStorage.removeItem("searchInitiated");
+    } catch {}
     navigate("/model");
   };
 
   const handleSearch = () => {
-    if (searchTerm.trim()) {
-      // Auto-detect brand from search term
-      const detectedBrand = brands.find((b) =>
-        searchTerm.toLowerCase().includes((b.name || b.merk)?.toLowerCase())
-      );
-      if (detectedBrand) {
-        const name = detectedBrand.name || detectedBrand.merk;
-        setSelectedBrand(name);
-        setSelectedBrandId(detectedBrand._id);
-        localStorage.setItem("selectedBrand", name);
-        localStorage.setItem("selectedBrandId", detectedBrand._id);
-        if (detectedBrand.logo)
-          localStorage.setItem("selectedBrandLogo", detectedBrand.logo);
+    const raw = searchTerm.trim();
+    if (!raw) return;
+
+    const term = raw.toLowerCase();
+    const compact = term.replace(/\s+/g, "");
+    // Map common aliases to brand names
+    const aliasMap = [
+      { keys: ["iphone", "ipad", "apple"], brand: "Apple" },
+      { keys: ["samsung", "galaxy", "note", "tab"], brand: "Samsung" },
+      { keys: ["huawei"], brand: "Huawei" },
+      { keys: ["xiaomi", "mi", "redmi", "poco"], brand: "Xiaomi" },
+      { keys: ["oneplus"], brand: "OnePlus" },
+      { keys: ["oppo"], brand: "Oppo" },
+      { keys: ["pixel", "google"], brand: "Google" },
+      { keys: ["sony", "xperia"], brand: "Sony" },
+      { keys: ["nokia"], brand: "Nokia" },
+    ];
+
+    // Heuristics for brand inference
+    const isSamsungSPattern =
+      /\bgalaxy\s*s\b/.test(term) ||
+      /\bs\d{2}\b/.test(term) ||
+      /\bgalaxys\d{2}\b/.test(compact);
+    const isApplePattern =
+      /\biphone\b/.test(term) ||
+      /\bipad\b/.test(term) ||
+      (/\b(pro|max|mini|plus|se)\b/.test(term) && /\b\d{1,2}\b/.test(term));
+    // Oppo patterns: Find X series, Find N series, Reno series (e.g., "find x8 pro", "find n3 flip", "reno 12 pro")
+    const isOppoPattern =
+      /\bfind\s*x\d+\b/.test(term) ||
+      /\bfindx\d+\b/.test(compact) ||
+      /\bfind\s*n\d+\b/.test(term) ||
+      /\breno\s*\d+\b/.test(term);
+    // Samsung A-series without brand token (e.g., "a54", "galaxy a35")
+    const isSamsungAPattern =
+      /\bgalaxy\s*a\d{1,3}\b/.test(term) || /(^|\b)a\d{1,3}\b/.test(term);
+    // Samsung tablets (e.g., "tab s9", "tab a7", "tabs8", "galaxy tab a8")
+    const isSamsungTabPattern =
+      /\bgalaxy\s*tab\b/.test(term) ||
+      /\btab\s*[as]?\d{1,2}\b/.test(term) ||
+      /\btabs\d{1,2}\b/.test(compact);
+    // Xiaomi series (e.g., "redmi note 12", "poco f5", "mi 11")
+    const isXiaomiPattern =
+      /\bredmi\b/.test(term) ||
+      /\bpoco\b/.test(term) ||
+      /\bmi\s*\d+\b/.test(term);
+    // OnePlus series without brand token (e.g., "nord 2", "ace 3")
+    const isOnePlusPattern = /\bnord\b/.test(term) || /\bace\b/.test(term);
+    // Huawei series (e.g., "mate 50", "p30 pro")
+    const isHuaweiPattern =
+      /\bmate\s*\w*\d+\b/.test(term) || /\bp\d{2,3}\b/.test(term);
+    // Sony Xperia
+    const isSonyPattern = /\bxperia\b/.test(term);
+    // Google Pixel (alias should already catch, but include explicit model-only form)
+    const isPixelPattern = /\bpixel\b/.test(term) || /\b\d{1,2}a\b/.test(term);
+
+    let detectedBrand = undefined;
+    const findBrand = (predicate) =>
+      brands.find((b) => predicate((b.name || b.merk || "").toLowerCase()));
+
+    if (isSamsungSPattern) {
+      // Choose the Samsung S-series brand (e.g., "Samsung S modellen")
+      detectedBrand =
+        findBrand(
+          (n) => /samsung/.test(n) && /(\bgalaxy\s*s\b|\bs\b)/.test(n)
+        ) || findBrand((n) => /samsung s/.test(n));
+    } else if (isApplePattern) {
+      // Prefer iPad vs iPhone based on tokens in the query
+      if (/\bipad\b/.test(term)) {
+        detectedBrand =
+          findBrand((n) => /ipad/.test(n)) ||
+          findBrand((n) => /(apple|iphone)/.test(n));
+      } else {
+        detectedBrand =
+          findBrand((n) => /iphone/.test(n)) ||
+          findBrand((n) => /(apple|ipad)/.test(n));
       }
+      // Final fallback: any brand containing apple/iphone/ipad
+      if (!detectedBrand) {
+        detectedBrand = findBrand((n) => /(apple|iphone|ipad)/.test(n));
+      }
+    } else if (isSamsungTabPattern) {
+      // Samsung tablets ("Samsung Tablets")
+      detectedBrand = findBrand(
+        (n) => /samsung/.test(n) && /(tablet|tab)/.test(n)
+      );
+    } else if (isSamsungAPattern) {
+      // Samsung A models (e.g., brand tile "Samsung A modellen")
+      detectedBrand =
+        findBrand((n) => /samsung\s*a\b/.test(n)) ||
+        findBrand((n) => /samsung/.test(n) && /\ba\b/.test(n));
+    } else if (isOppoPattern) {
+      // Oppo brand detection from model-only queries
+      detectedBrand = findBrand((n) => /oppo/.test(n));
+    } else if (isXiaomiPattern) {
+      detectedBrand =
+        findBrand((n) => /xiaomi/.test(n)) ||
+        findBrand((n) => /(redmi|poco|\bmi\b)/.test(n));
+    } else if (isOnePlusPattern) {
+      detectedBrand = findBrand((n) => /oneplus/.test(n));
+    } else if (isHuaweiPattern) {
+      detectedBrand = findBrand((n) => /huawei/.test(n));
+    } else if (isSonyPattern) {
+      detectedBrand = findBrand((n) => /(sony|xperia)/.test(n));
+    } else if (isPixelPattern) {
+      detectedBrand = findBrand((n) => /(pixel|google)/.test(n));
+    }
+    // Try direct brand name match
+    if (!detectedBrand) {
+      detectedBrand = brands.find((b) =>
+        term.includes((b.name || b.merk || "").toLowerCase())
+      );
+    }
+    // Try alias mapping
+    if (!detectedBrand) {
+      const hit = aliasMap.find((m) => m.keys.some((k) => term.includes(k)));
+      if (hit) {
+        // Prefer partial name matches using the alias keys, then exact brand name fallback
+        detectedBrand = brands.find((b) => {
+          const nm = (b.name || b.merk || "").toLowerCase();
+          return (
+            hit.keys.some((k) => nm.includes(k)) ||
+            nm === hit.brand.toLowerCase()
+          );
+        });
+      }
+    }
+
+    // Persist brand if detected
+    if (detectedBrand) {
+      const name = detectedBrand.name || detectedBrand.merk;
+      setSelectedBrand(name);
+      setSelectedBrandId(detectedBrand._id);
+      localStorage.setItem("selectedBrand", name);
+      localStorage.setItem("selectedBrandId", detectedBrand._id);
+      if (detectedBrand.logo)
+        localStorage.setItem("selectedBrandLogo", detectedBrand.logo);
+    }
+
+    // Derive a model search fragment by stripping brand/aliases from the input
+    let modelFragment = raw;
+    const toStrip = new Set([
+      ...(detectedBrand
+        ? [detectedBrand.name || detectedBrand.merk || ""]
+        : []),
+      ...aliasMap.flatMap((m) => m.keys),
+      // common generic words in brand tiles
+      "modellen",
+      "models",
+      "galaxy",
+      "tablet",
+      "tab",
+      // Oppo series tokens
+      "find",
+      "x",
+      "n",
+      "reno",
+      "neo",
+      "lite",
+      "flip",
+      // general brand/model tokens for other brands
+      "pixel",
+      "redmi",
+      "poco",
+      "mi",
+      "nord",
+      "ace",
+      "mate",
+      "xperia",
+      "note",
+    ]);
+    toStrip.forEach((kw) => {
+      if (!kw) return;
+      const re = new RegExp(
+        `\\b${kw.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`,
+        "ig"
+      );
+      modelFragment = modelFragment.replace(re, " ");
+    });
+    modelFragment = modelFragment.replace(/\s+/g, " ").trim();
+
+    // Special case: keep brand tokens for Apple iPhone so fragment shows full context
+    if (
+      detectedBrand &&
+      /(apple\s*iphone)/i.test(
+        detectedBrand.name || detectedBrand.merk || ""
+      ) &&
+      modelFragment.length > 0
+    ) {
+      // Prepend a normalized 'Apple iPhone' if not already present in fragment
+      if (!/^apple\s*iphone/i.test(modelFragment)) {
+        modelFragment = `Apple iPhone ${modelFragment}`.trim();
+      }
+    }
+    if (detectedBrand && modelFragment.length > 1) {
+      try {
+        localStorage.setItem("modelSearchTerm", modelFragment);
+        localStorage.setItem("searchInitiated", "1");
+      } catch {}
+    }
+
+    if (detectedBrand) {
       navigate("/model");
     }
   };
@@ -74,6 +267,11 @@ const Homepage = () => {
         if (match?._id) localStorage.setItem("selectedBrandId", match._id);
         if (match?.logo) localStorage.setItem("selectedBrandLogo", match.logo);
       }
+      // Continuing without typing a search should not carry over a previous fragment
+      try {
+        localStorage.removeItem("modelSearchTerm");
+        localStorage.removeItem("searchInitiated");
+      } catch {}
       navigate("/model");
     }
   };
@@ -152,7 +350,7 @@ const Homepage = () => {
                   placeholder="iPhone 12 Pro Max"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
                 <button className="search-btn" onClick={handleSearch}>
                   🔍

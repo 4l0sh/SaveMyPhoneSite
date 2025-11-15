@@ -9,6 +9,7 @@ import ProgressBar from "./ProgressBar";
 const RepairSelection = () => {
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [modelImage, setModelImage] = useState("");
   const [selectedRepairs, setSelectedRepairs] = useState([]);
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ const RepairSelection = () => {
       .then((payload) => {
         // payload: { modelId, modelNaam, imageUrl, reparaties: [...] }
         if (payload?.modelNaam) setSelectedModel(payload.modelNaam);
+        if (payload?.imageUrl) setModelImage(payload.imageUrl);
         setRepairs(
           Array.isArray(payload?.reparaties) ? payload.reparaties : []
         );
@@ -111,11 +113,15 @@ const RepairSelection = () => {
 
                 <div className="device-header">
                   <div className="device-info">
-                    <div className="device-icon">📱</div>
+                    <div className="device-thumb">
+                      {modelImage ? (
+                        <img src={modelImage} alt={selectedModel} />
+                      ) : (
+                        <span className="fallback-icon">📱</span>
+                      )}
+                    </div>
                     <div>
-                      <h2 className="device-title">
-                        {selectedBrand} {selectedModel}
-                      </h2>
+                      <h2 className="device-title">{selectedModel}</h2>
                       <p className="device-type">Smartphone</p>
                     </div>
                   </div>
@@ -193,9 +199,7 @@ const RepairSelection = () => {
               <div className="summary-section">
                 <div className="repair-list-card">
                   <h3 className="list-title">Reparatielijst</h3>
-                  <p className="device-summary">
-                    {selectedBrand} {selectedModel}
-                  </p>
+                  <p className="device-summary">{selectedModel}</p>
 
                   <div className="selected-repairs">
                     {selectedRepairs.map((repair) => (

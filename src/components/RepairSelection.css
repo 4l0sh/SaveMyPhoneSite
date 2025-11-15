@@ -24,7 +24,7 @@
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  padding: 28px;
   position: relative;
 }
 
@@ -62,12 +62,25 @@
   gap: 15px;
 }
 
-.device-icon {
-  font-size: 3rem;
-  background: #fff5f2;
-  padding: 15px;
+.device-thumb {
+  width: 88px;
+  height: 88px;
   border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #fff5f2;
   border: 2px solid #ff6b35;
+}
+
+.device-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.fallback-icon {
+  font-size: 2rem;
 }
 
 .device-title {
@@ -98,15 +111,15 @@
 .repairs-grid {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-bottom: 40px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .repair-card {
   background: white;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
-  padding: 20px;
+  padding: 14px 16px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -125,13 +138,13 @@
 .repair-header {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
 .repair-icon {
-  font-size: 1.5rem;
-  width: 40px;
+  font-size: 1.3rem;
+  width: 32px;
   text-align: center;
 }
 
@@ -140,17 +153,19 @@
 }
 
 .repair-name {
-  font-size: 1.1rem;
+  display: inline-block;
+  font-size: 1rem;
   font-weight: 700;
   color: #333;
-  margin: 0 0 5px 0;
+  margin: 0;
 }
 
 .repair-duration {
+  display: inline-block;
   font-size: 0.9rem;
   color: #ff6b35;
   font-weight: 600;
-  margin: 0;
+  margin: 0 0 0 8px;
 }
 
 .repair-price {
@@ -158,7 +173,7 @@
 }
 
 .price {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #ff6b35;
 }
@@ -171,9 +186,10 @@
 
 .repair-description {
   color: #666;
-  line-height: 1.5;
-  margin: 0;
-  padding-left: 55px;
+  line-height: 1.45;
+  font-size: 0.95rem;
+  margin: 6px 0 0 0;
+  padding-left: 0;
 }
 
 .continue-section {
@@ -400,9 +416,9 @@
     gap: 10px;
   }
 
-  .device-icon {
-    font-size: 2.5rem;
-    padding: 12px;
+  .device-thumb {
+    width: 72px;
+    height: 72px;
   }
 
   .device-title {

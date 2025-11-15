@@ -855,3 +855,216 @@ router.post("/contact", async (req, res) => {
     res.status(500).json({ error: "Kon bericht niet opslaan" });
   }
 });
+
+// ====== REM booking integration ======
+// Uses REM_API or VITE_REM_API as Bearer token to call https://api.roapp.io
+const REM_API_KEY = process.env.REM_API || process.env.VITE_REM_API || "";
+
+const REM_BASE = "https://api.roapp.io";
+
+async function remFetch(path, { method = "GET", body } = {}) {
+  if (!REM_API_KEY) throw new Error("Missing REM API key (REM_API)");
+  const headers = {
+    accept: "application/json",
+    authorization: `Bearer ${REM_API_KEY}`,
+  };
+  const opts = { method, headers };
+  if (body) {
+    headers["content-type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
+  const resp = await fetch(`${REM_BASE}${path}`, opts);
+  const textCt = resp.headers.get("content-type") || "";
+  const isJson = textCt.toLowerCase().includes("application/json");
+  const data = isJson ? await resp.json().catch(() => null) : null;
+  if (!resp.ok) {
+    const msg = data?.message || data?.error || `REM HTTP ${resp.status}`;
+    const err = new Error(msg);
+    err.status = resp.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+// Normalize Dutch phone to match REM format (e.g., 06xxxx -> 316xxxx, drop '+')
+function normalizeNlPhone(p) {
+  const digits = String(p || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("31")) return digits; // already E.164 without plus
+  if (digits.startsWith("0") && digits.length >= 10) {
+    return `31${digits.slice(1)}`;
+  }
+  return digits; // fallback
+}
+
+async function remFindPerson({ email, phone }) {
+  // Iterate all pages of contacts to locate a match by email or phone
+  let page = 1;
+  const normEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  const normPhone = normalizeNlPhone(phone);
+  // First page to get total_pages
+  const first = await remFetch(`/contacts/people?page=${page}`);
+  const totalPages = Number(first?.total_pages || 1);
+  const scan = (arr) => {
+    for (const p of arr || []) {
+      const e = String(p.email || "")
+        .trim()
+        .toLowerCase();
+      if (normEmail && e && e === normEmail) return p;
+      if (normPhone && Array.isArray(p.phones)) {
+        for (const ph of p.phones) {
+          const hp = normalizeNlPhone(ph?.phone);
+          if (hp && hp === normPhone) return p;
+        }
+      }
+    }
+    return null;
+  };
+  let hit = scan(first?.data);
+  if (hit) return hit;
+  for (page = 2; page <= totalPages; page++) {
+    const resp = await remFetch(`/contacts/people?page=${page}`);
+    hit = scan(resp?.data);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+async function remCreatePerson({ firstName, lastName, email, phone }) {
+  const payload = {
+    first_name: String(firstName || "").trim() || "",
+    last_name: String(lastName || "").trim() || "",
+    email: String(email || "").trim() || "",
+    phones: phone
+      ? [
+          {
+            title: "Werk",
+            phone: normalizeNlPhone(phone),
+            notify: false,
+            has_viber: false,
+            has_whatsapp: false,
+          },
+        ]
+      : [],
+  };
+  // Remove empty email/phones to avoid validation errors
+  if (!payload.email) delete payload.email;
+  if (!payload.phones.length) delete payload.phones;
+  const created = await remFetch(`/contacts/people`, {
+    method: "POST",
+    body: payload,
+  });
+  return created;
+}
+
+function toIsoRange(dateStr, timeStr, minutes = 60) {
+  // Build local date/time and return ISO strings for start and end
+  const [y, m, d] = (dateStr || "").split("-").map((n) => Number(n));
+  const [hh, mm] = (timeStr || "00:00").split(":").map((n) => Number(n));
+  const start = new Date(Date.UTC(y, (m || 1) - 1, d || 1, hh || 0, mm || 0));
+  const end = new Date(start.getTime() + Math.max(15, minutes) * 60000);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+router.post("/booking", async (req, res) => {
+  try {
+    if (!REM_API_KEY) {
+      return res
+        .status(500)
+        .json({ error: "Server misconfigured: missing REM_API key" });
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      preferredDate,
+      preferredTime,
+      additionalNotes,
+      device, // e.g., "Apple iPhone 12"
+      repairs = [], // array of { name, duration, price }
+      branchId, // optional for now; will be configured later
+    } = req.body || {};
+
+    if (!preferredDate || !preferredTime) {
+      return res.status(400).json({ error: "preferredDate/time required" });
+    }
+
+    // Compute duration from repairs (sum minutes); fallback 60
+    const parseMinutes = (v) => {
+      if (v == null) return 0;
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+      const m = String(v).match(/(\d{1,3})/);
+      return m ? Number(m[1]) : 0;
+    };
+    const totalMin = Math.max(
+      30,
+      repairs.reduce(
+        (sum, r) => sum + parseMinutes(r?.duurMinuten || r?.duration),
+        0
+      ) || 60
+    );
+    const { start, end } = toIsoRange(preferredDate, preferredTime, totalMin);
+
+    // Find or create contact
+    let person = await remFindPerson({ email, phone });
+    if (!person) {
+      person = await remCreatePerson({ firstName, lastName, email, phone });
+    }
+    const clientId = person?.id || person?.data?.id || person?._id;
+    if (!clientId) {
+      return res.status(502).json({ error: "Failed to resolve client id" });
+    }
+
+    // Determine branch and assignee
+    const resolvedBranchId =
+      branchId || process.env.REM_BRANCH_ID || process.env.VITE_REM_BRANCH_ID;
+    if (!resolvedBranchId) {
+      return res
+        .status(400)
+        .json({ error: "branchId is required for booking" });
+    }
+    const assigneeId = Number(process.env.REM_ASSIGNEE_ID || 286802);
+
+    const commentParts = [];
+    if (device) commentParts.push(`Device: ${device}`);
+    if (repairs?.length) {
+      commentParts.push(
+        `Repairs: ${repairs
+          .map(
+            (r) =>
+              `${r.name || r.naam || "?"}${r.price ? ` (€${r.price})` : ""}`
+          )
+          .join(", ")}`
+      );
+    }
+    if (additionalNotes) commentParts.push(`Comment: ${additionalNotes}`);
+    const comment = commentParts.join(" | ");
+
+    const bookingPayload = {
+      branch_id: Number(resolvedBranchId),
+      assignee_id: Number(assigneeId),
+      client_id: Number(clientId),
+      scheduled_for: start,
+      scheduled_to: end,
+      comment,
+    };
+
+    const booking = await remFetch(`/bookings`, {
+      method: "POST",
+      body: bookingPayload,
+    });
+
+    return res.json({ ok: true, clientId, booking });
+  } catch (err) {
+    console.error("POST /booking error:", err?.status || "", err?.data || err);
+    const status = err?.status || 500;
+    return res
+      .status(status)
+      .json({ error: err?.message || "Failed to create booking" });
+  }
+});

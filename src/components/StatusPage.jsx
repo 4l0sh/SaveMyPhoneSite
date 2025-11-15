@@ -27,7 +27,7 @@ const StatusPage = () => {
   const [apiData, setApiData] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch data when component mounts
+  // Fetch all orders (across all pages) when component mounts
   useEffect(() => {
     const options = {
       method: "GET",
@@ -37,10 +37,35 @@ const StatusPage = () => {
       },
     };
 
-    fetch("https://api.roapp.io/orders", options)
-      .then((res) => res.json())
-      .then((res) => setApiData(res.data))
-      .catch((err) => console.error(err));
+    const baseUrl = "https://api.roapp.io/orders";
+    const fetchAllOrders = async () => {
+      try {
+        // Get first page to learn total_pages
+        const firstRes = await fetch(baseUrl, options);
+        const firstJson = await firstRes.json();
+        const total = Number(firstJson?.total_pages || 1);
+        let all = Array.isArray(firstJson?.data) ? firstJson.data.slice() : [];
+        if (total > 1) {
+          const promises = [];
+          for (let p = 2; p <= total; p++) {
+            promises.push(
+              fetch(`${baseUrl}?page=${p}`, options)
+                .then((r) => r.json())
+                .catch(() => ({ data: [] }))
+            );
+          }
+          const pages = await Promise.all(promises);
+          for (const pg of pages) {
+            if (Array.isArray(pg?.data)) all = all.concat(pg.data);
+          }
+        }
+        setApiData(all);
+      } catch (err) {
+        console.error("Status fetch error:", err);
+      }
+    };
+
+    fetchAllOrders();
   }, []);
 
   const handleCheckStatus = (e) => {
@@ -57,15 +82,19 @@ const StatusPage = () => {
 
         if (order) {
           const mappedStatus = {
-            customer: order.client.name,
-            device: `${order.asset.brand} ${order.asset.model}`, // Combine brand and model
-            repairs: [order.malfunction],
-            status: order.status.name,
-            lastUpdate: new Date(order.modified_at).toLocaleString(),
-            price: order.price ? `€${order.price}` : "Price not set",
+            customer: order?.client?.name || "-",
+            device: `${order?.asset?.brand || ""} ${
+              order?.asset?.model || ""
+            }`.trim(),
+            repairs: [order?.malfunction || "-"],
+            status: order?.status?.name || "In Progress",
+            lastUpdate: order?.modified_at
+              ? new Date(order.modified_at).toLocaleString()
+              : "-",
+            price: order?.price ? `€${order.price}` : "Price not set",
             notes:
-              order.engineer_notes ||
-              order.manager_notes ||
+              order?.engineer_notes ||
+              order?.manager_notes ||
               "No notes available",
           };
           setStatusInfo(mappedStatus);

@@ -10,6 +10,7 @@ const ModelSelection = () => {
   const [selectedBrandLogo, setSelectedBrandLogo] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [initialFilterApplied, setInitialFilterApplied] = useState(false);
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -54,9 +55,39 @@ const ModelSelection = () => {
       .finally(() => setLoading(false));
   }, [navigate]);
 
-  const filteredModels = (models || []).filter((m) =>
-    (m.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Apply a stored model search fragment once on mount (after models load)
+  useEffect(() => {
+    if (!initialFilterApplied && models.length) {
+      const flag = localStorage.getItem("searchInitiated");
+      const storedFragment = localStorage.getItem("modelSearchTerm");
+      if (flag && storedFragment) {
+        setSearchTerm(storedFragment);
+      }
+      setInitialFilterApplied(true);
+      // Clear the flag after first application to avoid sticky filters
+      try {
+        localStorage.removeItem("searchInitiated");
+      } catch {}
+    }
+  }, [models, initialFilterApplied]);
+
+  const filteredModels = (models || []).filter((m) => {
+    const n = (m.name || "").toLowerCase();
+    let term = searchTerm.toLowerCase();
+    if (!term) return true;
+    // If searchTerm contains a prefixed brand like 'apple iphone', strip those tokens for matching
+    term = term
+      .replace(
+        /\b(apple|iphone|ipad|samsung|galaxy|oppo|xiaomi|redmi|poco|oneplus|huawei|sony|xperia|google|pixel)\b/gi,
+        " "
+      )
+      .trim();
+    if (!term) term = searchTerm.toLowerCase(); // fallback if everything stripped
+    // Support partial matches ignoring spaces/dashes
+    const compactName = n.replace(/[-_\s]/g, "");
+    const compactTerm = term.replace(/[-_\s]/g, "");
+    return n.includes(term) || compactName.includes(compactTerm);
+  });
 
   const handleModelSelect = (model) => {
     setSelectedModel(model.name);
@@ -67,11 +98,16 @@ const ModelSelection = () => {
 
   const handleSearch = () => {
     if (searchTerm.trim() && filteredModels.length > 0) {
-      const first = filteredModels[0];
-      setSelectedModel(first.name);
-      localStorage.setItem("selectedModel", first.name);
-      localStorage.setItem("selectedModelId", first._id);
-      navigate("/repair");
+      // If exactly one match, auto-select it and proceed
+      if (filteredModels.length === 1) {
+        const only = filteredModels[0];
+        setSelectedModel(only.name);
+        localStorage.setItem("selectedModel", only.name);
+        localStorage.setItem("selectedModelId", only._id);
+        navigate("/repair");
+        return;
+      }
+      // Otherwise just keep filtered list visible; no auto-navigation
     }
   };
 
@@ -132,7 +168,7 @@ const ModelSelection = () => {
                   placeholder={`Zoek ${selectedBrand}-modellen...`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
                 <button className="search-btn" onClick={handleSearch}>
                   🔍

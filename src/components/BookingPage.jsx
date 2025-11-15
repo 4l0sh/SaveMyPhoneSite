@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../api";
 import "./BookingPage.css";
 import ProgressBar from "./ProgressBar";
 
@@ -17,6 +18,8 @@ const BookingPage = (props) => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const navigate = useNavigate();
 
@@ -79,15 +82,48 @@ const BookingPage = (props) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically send the data to your backend
-    console.log("Booking submitted:", {
-      device: `${selectedBrand} ${selectedModel}`,
-      repairs: selectedRepairs,
-      customerInfo: formData,
-    });
-    setIsSubmitted(true);
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      const payload = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        preferredDate: formData.preferredDate,
+        preferredTime: formData.preferredTime,
+        additionalNotes: formData.additionalNotes,
+        device: `${selectedBrand} ${selectedModel}`.trim(),
+        repairs: (selectedRepairs || []).map((r) => ({
+          name: r.name || r.naam,
+          price: r.price ?? r.prijs ?? null,
+          duration: r.duurMinuten ?? r.duration ?? null,
+        })),
+        // option to pass a branchId later; leave undefined for now
+      };
+
+      const res = await apiFetch("/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          json?.error || `Boeking maken mislukt (HTTP ${res.status})`
+        );
+      }
+      // Success
+      setIsSubmitted(true);
+    } catch (err) {
+      setErrorMsg(
+        err.message || "Er ging iets mis bij het plannen van de afspraak."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const calculateTotal = () => {
@@ -292,9 +328,19 @@ const BookingPage = (props) => {
                     <button
                       type="submit"
                       className="btn btn-primary submit-btn"
+                      disabled={submitting}
                     >
-                      Bevestig afspraak
+                      {submitting ? "Bevestigen..." : "Bevestig afspraak"}
                     </button>
+                    {errorMsg && (
+                      <p
+                        className="error-text"
+                        role="alert"
+                        style={{ marginTop: 8, color: "#b00020" }}
+                      >
+                        {errorMsg}
+                      </p>
+                    )}
                   </div>
                 </form>
               </div>
@@ -349,16 +395,16 @@ const BookingPage = (props) => {
                 <div className="contact-info">
                   <h4 className="contact-title">Onze locatie</h4>
                   <p className="contact-details">
-                    123 Repair Street
+                    Schutterstraat 42b
                     <br />
-                    Amsterdam, 1012 AB
+                    Almere, 1315 VJ
                     <br />
                     Nederland
                     <br />
                     <br />
-                    <strong>Telefoon:</strong> +31 20 123 4567
+                    <strong>Telefoon:</strong> 036 525 6149
                     <br />
-                    <strong>E-mail:</strong> info@savemyphone.nl
+                    <strong>E-mail:</strong> info@savemysmartphone.nl
                   </p>
                 </div>
               </div>
