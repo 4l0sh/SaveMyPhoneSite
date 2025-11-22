@@ -226,6 +226,35 @@ const Admin = () => {
         >
           Nieuw reparatietype
         </a>
+        <a
+          href="/admin/blogs/new"
+          style={{
+            background: "#ff6b35",
+            border: "1px solid #e75724",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#fff",
+            display: "inline-block",
+            fontWeight: 600,
+          }}
+        >
+          Nieuwe blog
+        </a>
+        <a
+          href="/admin/blogs"
+          style={{
+            background: "#eee",
+            border: "1px solid #ccc",
+            padding: "8px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            color: "#333",
+            display: "inline-block",
+          }}
+        >
+          Blogs beheren
+        </a>
       </div>
 
       <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>

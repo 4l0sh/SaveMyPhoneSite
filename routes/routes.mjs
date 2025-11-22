@@ -5,7 +5,152 @@ import { ObjectId } from "mongodb";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 dotenv.config();
+
+// Minimal HTML escaping for safe email templates
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildContactHtml({
+  title,
+  name,
+  email,
+  phone,
+  message,
+  brand = "Save My Phone",
+}) {
+  const escName = escapeHtml(name);
+  const escEmail = escapeHtml(email || "");
+  const escPhone = escapeHtml(phone || "");
+  const escMessage = escapeHtml(message || "").replace(/\n/g, "<br>");
+  const accent = "#f97316"; // subtle orange accent
+  const textColor = "#111827"; // gray-900
+  const muted = "#6b7280"; // gray-500
+  return `<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>${escapeHtml(title)}</title>
+    </head>
+    <body style="margin:0;padding:24px;background:#f8fafc;color:${textColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans','Apple Color Emoji','Segoe UI Emoji',sans-serif;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <div style="background:${accent};color:#fff;padding:16px 20px;font-weight:600;font-size:16px;">
+          ${escapeHtml(brand)}
+        </div>
+        <div style="padding:20px 20px 8px 20px;">
+          <h1 style="margin:0 0 12px 0;font-size:18px;line-height:1.3;color:${textColor};">${escapeHtml(
+    title
+  )}</h1>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:8px;margin-bottom:16px;">
+            <tbody>
+              <tr>
+                <td style="padding:6px 0;width:120px;color:${muted};font-size:14px;">Naam</td>
+                <td style="padding:6px 0;font-size:14px;color:${textColor};">${escName}</td>
+              </tr>
+              ${
+                email
+                  ? `<tr>
+                <td style="padding:6px 0;width:120px;color:${muted};font-size:14px;">E‑mail</td>
+                <td style="padding:6px 0;font-size:14px;color:${textColor};">${escEmail}</td>
+              </tr>`
+                  : ""
+              }
+              ${
+                phone
+                  ? `<tr>
+                <td style="padding:6px 0;width:120px;color:${muted};font-size:14px;">Telefoon</td>
+                <td style="padding:6px 0;font-size:14px;color:${textColor};">${escPhone}</td>
+              </tr>`
+                  : ""
+              }
+            </tbody>
+          </table>
+          <div style="margin-top:8px;margin-bottom:6px;color:${muted};font-size:13px;">Bericht</div>
+          <div style="white-space:normal;word-break:break-word;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;font-size:14px;color:${textColor};background:#fafafa;">${escMessage}</div>
+        </div>
+        <div style="padding:14px 20px;color:${muted};font-size:12px;background:#fafafa;border-top:1px solid #f1f5f9;">
+          Dit bericht is verzonden via het contactformulier op ${escapeHtml(
+            brand
+          )}.
+        </div>
+      </div>
+    </body>
+  </html>`;
+}
+
+function buildBookingHtml({
+  title,
+  firstName,
+  lastName,
+  email,
+  phone,
+  device,
+  repairs,
+  start,
+  end,
+  additionalNotes,
+  brand = "Save My Phone",
+}) {
+  const fullName =
+    [firstName, lastName].filter(Boolean).join(" ") || "(onbekend)";
+  const escName = escapeHtml(fullName);
+  const escEmail = escapeHtml(email || "");
+  const escPhone = escapeHtml(phone || "");
+  const escDevice = escapeHtml(device || "");
+  const escNotes = escapeHtml(additionalNotes || "").replace(/\n/g, "<br>");
+  const accent = "#f97316";
+  const textColor = "#111827";
+  const muted = "#6b7280";
+  const escStart = escapeHtml(start || "");
+  const escEnd = escapeHtml(end || "");
+  const repairsRows = (repairs || [])
+    .map((r) => {
+      const name = escapeHtml(r.name || r.naam || "?");
+      const price = r.price ? `€${escapeHtml(String(r.price))}` : "";
+      const duration =
+        r.duration || r.duurMinuten
+          ? `${escapeHtml(String(r.duration || r.duurMinuten))} min`
+          : "";
+      return `<tr><td style=\"padding:6px 8px;border-bottom:1px solid #f1f5f9;\">${name}</td><td style=\"padding:6px 8px;border-bottom:1px solid #f1f5f9;white-space:nowrap;\">${price}</td><td style=\"padding:6px 8px;border-bottom:1px solid #f1f5f9;white-space:nowrap;\">${duration}</td></tr>`;
+    })
+    .join("");
+  const repairsTable = repairsRows
+    ? `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin-top:8px;margin-bottom:16px;font-size:13px;\"><thead><tr style=\"background:#fff5f2;\"><th style=\"text-align:left;padding:6px 8px;font-weight:600;\">Reparatie</th><th style=\"text-align:left;padding:6px 8px;font-weight:600;\">Prijs</th><th style=\"text-align:left;padding:6px 8px;font-weight:600;\">Duur</th></tr></thead><tbody>${repairsRows}</tbody></table>`
+    : `<p style=\"margin:8px 0 16px;color:${muted};font-size:13px;\">Geen reparaties opgegeven.</p>`;
+  return `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>${escapeHtml(
+    title
+  )}</title></head><body style=\"margin:0;padding:24px;background:#f8fafc;color:${textColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans','Apple Color Emoji','Segoe UI Emoji',sans-serif;\"><div style=\"max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;\"><div style=\"background:${accent};color:#fff;padding:16px 22px;font-weight:600;font-size:16px;\">${escapeHtml(
+    brand
+  )}</div><div style=\"padding:22px 22px 12px 22px;\"><h1 style=\"margin:0 0 14px;font-size:19px;line-height:1.35;color:${textColor};\">${escapeHtml(
+    title
+  )}</h1><table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin-top:4px;margin-bottom:14px;font-size:14px;\"><tbody><tr><td style=\"padding:6px 0;width:140px;color:${muted};\">Klant</td><td style=\"padding:6px 0;\">${escName}</td></tr>${
+    email
+      ? `<tr><td style=\"padding:6px 0;width:140px;color:${muted};\">E‑mail</td><td style=\"padding:6px 0;\">${escEmail}</td></tr>`
+      : ""
+  }${
+    phone
+      ? `<tr><td style=\"padding:6px 0;width:140px;color:${muted};\">Telefoon</td><td style=\"padding:6px 0;\">${escPhone}</td></tr>`
+      : ""
+  }${
+    device
+      ? `<tr><td style=\"padding:6px 0;width:140px;color:${muted};\">Toestel</td><td style=\"padding:6px 0;\">${escDevice}</td></tr>`
+      : ""
+  }<tr><td style=\"padding:6px 0;width:140px;color:${muted};\">Start</td><td style=\"padding:6px 0;\">${escStart}</td></tr><tr><td style=\"padding:6px 0;width:140px;color:${muted};\">Einde</td><td style=\"padding:6px 0;\">${escEnd}</td></tr></tbody></table><div style=\"margin-top:4px;margin-bottom:6px;color:${muted};font-size:13px;\">Reparaties</div>${repairsTable}${
+    additionalNotes
+      ? `<div style=\"margin-top:10px;margin-bottom:6px;color:${muted};font-size:13px;\">Opmerking</div><div style=\"white-space:normal;word-break:break-word;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;font-size:14px;color:${textColor};background:#fafafa;\">${escNotes}</div>`
+      : ""
+  }</div><div style=\"padding:14px 22px;color:${muted};font-size:12px;background:#fafafa;border-top:1px solid #f1f5f9;\">Deze bevestiging is gegenereerd door ${escapeHtml(
+    brand
+  )}. Bewaar dit voor je administratie.</div></div></body></html>`;
+}
 
 // Helper to find a repair type by ObjectId or by name (case-insensitive)
 function repairLookupQuery(idOrName) {
@@ -849,7 +994,141 @@ router.post("/contact", async (req, res) => {
     };
 
     await db.collection("contact_messages").insertOne(doc);
-    return res.json({ ok: true });
+
+    // Attempt to send notification email (non-blocking best-effort)
+    const smtpUser =
+      process.env.MAIL_USER || process.env.MAIL || process.env.VITE_MAIL;
+    const smtpPass = process.env.MAIL_PASS || process.env.VITE_MAIL_PASS;
+    const smtpHost = process.env.MAIL_HOST || "mail.mijndomein.nl";
+    const envPort = Number(process.env.MAIL_PORT || process.env.VITE_MAIL_PORT);
+    const smtpDebug =
+      String(process.env.SMTP_DEBUG || "").toLowerCase() === "1" ||
+      String(process.env.SMTP_DEBUG || "").toLowerCase() === "true";
+
+    if (smtpUser && smtpPass) {
+      // Build candidates: prefer env port if provided, else try 465 then 587
+      const candidates = [];
+      if (Number.isFinite(envPort) && envPort > 0) {
+        candidates.push({
+          host: smtpHost,
+          port: envPort,
+          secure: envPort === 465,
+        });
+      } else {
+        candidates.push({ host: smtpHost, port: 465, secure: true });
+        candidates.push({ host: smtpHost, port: 587, secure: false });
+      }
+
+      const ownerRecipient = process.env.CONTACT_TO || smtpUser;
+      console.log(
+        `[contact] Using SMTP user ${smtpUser} on ${smtpHost}; candidates: ` +
+          candidates
+            .map((c) => `${c.port}/${c.secure ? "ssl" : "starttls"}`)
+            .join(",")
+      );
+      const subject = `Nieuw contactbericht van ${name}`;
+      const lines = [
+        `Naam: ${name}`,
+        email ? `E-mail: ${email}` : null,
+        phone ? `Telefoon: ${phone}` : null,
+        `Bericht:`,
+        message,
+      ].filter(Boolean);
+      const textBody = lines.join("\n");
+      const htmlBody = buildContactHtml({
+        title: "Nieuw contactbericht",
+        name,
+        email,
+        phone,
+        message,
+        brand: "Save My Phone",
+      });
+
+      let mailed = false;
+      let lastErr = null;
+      for (const cfg of candidates) {
+        try {
+          const transporter = nodemailer.createTransport({
+            ...cfg,
+            auth: { user: smtpUser, pass: smtpPass },
+            tls: { rejectUnauthorized: false },
+            logger: smtpDebug,
+            debug: smtpDebug,
+            requireTLS: cfg.port === 587,
+          });
+          // Verify connection/config quickly
+          try {
+            await transporter.verify();
+          } catch (verErr) {
+            console.warn(
+              `[contact] transporter verify failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
+              verErr?.message
+            );
+          }
+          const fromHeader = `Save My Phone <${smtpUser}>`;
+          const ownerInfo = await transporter.sendMail({
+            from: fromHeader,
+            to: ownerRecipient,
+            subject,
+            text: textBody,
+            html: htmlBody,
+            replyTo: email || undefined,
+          });
+          console.log(
+            `[contact] owner mail sent via ${cfg.port} secure=${cfg.secure}:`,
+            ownerInfo?.messageId || "ok"
+          );
+
+          if (email && email !== ownerRecipient) {
+            const confirmSubject = "Je bericht is ontvangen";
+            const confirmText =
+              `Beste ${name},\n\nWe hebben je bericht ontvangen en nemen spoedig contact met je op.\n\nJe bericht:\n` +
+              message +
+              "\n\nMet vriendelijke groet,\nSave My Phone";
+            const confirmHtml = buildContactHtml({
+              title: "Je bericht is ontvangen",
+              name,
+              email,
+              phone,
+              message,
+              brand: "Save My Phone",
+            });
+            const userInfo = await transporter.sendMail({
+              from: fromHeader,
+              to: email,
+              subject: confirmSubject,
+              text: confirmText,
+              html: confirmHtml,
+              replyTo: ownerRecipient,
+            });
+            console.log(
+              `[contact] user confirmation sent via ${cfg.port}:`,
+              userInfo?.messageId || "ok"
+            );
+          }
+          mailed = true;
+          break;
+        } catch (mailErr) {
+          lastErr = mailErr;
+          console.warn(
+            `[contact] send failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
+            mailErr?.message
+          );
+          continue; // try next candidate
+        }
+      }
+      if (!mailed && lastErr) {
+        console.error("[contact] All SMTP attempts failed:", lastErr?.message);
+      }
+    } else {
+      if (!process.env.SUPPRESS_EMAIL_WARN) {
+        console.warn(
+          "[contact] Missing MAIL_USER (or MAIL)/MAIL_PASS (or VITE_MAIL/VITE_MAIL_PASS); skipping email send"
+        );
+      }
+    }
+
+    return res.json({ ok: true, emailed: !!(smtpUser && smtpPass) });
   } catch (err) {
     console.error("POST /contact error:", err);
     res.status(500).json({ error: "Kon bericht niet opslaan" });
@@ -1059,12 +1338,383 @@ router.post("/booking", async (req, res) => {
       body: bookingPayload,
     });
 
-    return res.json({ ok: true, clientId, booking });
+    // Best-effort email notification & confirmation
+    const smtpUser =
+      process.env.MAIL_USER || process.env.MAIL || process.env.VITE_MAIL;
+    const smtpPass = process.env.MAIL_PASS || process.env.VITE_MAIL_PASS;
+    const smtpHost = process.env.MAIL_HOST || "mail.mijndomein.nl";
+    const envPort = Number(process.env.MAIL_PORT || process.env.VITE_MAIL_PORT);
+    const smtpDebug =
+      String(process.env.SMTP_DEBUG || "").toLowerCase() === "1" ||
+      String(process.env.SMTP_DEBUG || "").toLowerCase() === "true";
+
+    let emailed = false;
+    if (smtpUser && smtpPass) {
+      const candidates = [];
+      if (Number.isFinite(envPort) && envPort > 0) {
+        candidates.push({
+          host: smtpHost,
+          port: envPort,
+          secure: envPort === 465,
+        });
+      } else {
+        candidates.push({ host: smtpHost, port: 465, secure: true });
+        candidates.push({ host: smtpHost, port: 587, secure: false });
+      }
+      const ownerRecipient =
+        process.env.BOOKING_TO || process.env.CONTACT_TO || smtpUser;
+      const startLocal = new Date(start).toLocaleString("nl-NL", {
+        hour12: false,
+      });
+      const endLocal = new Date(end).toLocaleString("nl-NL", { hour12: false });
+      const plainLines = [
+        `Klant: ${firstName || ""} ${lastName || ""}`.trim(),
+        email ? `E-mail: ${email}` : null,
+        phone ? `Telefoon: ${phone}` : null,
+        device ? `Toestel: ${device}` : null,
+        `Start: ${startLocal}`,
+        `Einde: ${endLocal}`,
+        repairs?.length
+          ? `Reparaties: ${repairs
+              .map(
+                (r) =>
+                  `${r.name || r.naam || "?"}${r.price ? ` (€${r.price})` : ""}`
+              )
+              .join(", ")}`
+          : null,
+        additionalNotes ? `Opmerking: ${additionalNotes}` : null,
+      ].filter(Boolean);
+      const textBody = plainLines.join("\n");
+      const htmlBodyOwner = buildBookingHtml({
+        title: "Nieuwe afspraak geboekt",
+        firstName,
+        lastName,
+        email,
+        phone,
+        device,
+        repairs,
+        start: startLocal,
+        end: endLocal,
+        additionalNotes,
+        brand: "Save My Phone",
+      });
+      const htmlBodyUser = buildBookingHtml({
+        title: "Bevestiging van je afspraak",
+        firstName,
+        lastName,
+        email,
+        phone,
+        device,
+        repairs,
+        start: startLocal,
+        end: endLocal,
+        additionalNotes,
+        brand: "Save My Phone",
+      });
+      let lastErr = null;
+      for (const cfg of candidates) {
+        try {
+          const transporter = nodemailer.createTransport({
+            ...cfg,
+            auth: { user: smtpUser, pass: smtpPass },
+            tls: { rejectUnauthorized: false },
+            logger: smtpDebug,
+            debug: smtpDebug,
+            requireTLS: cfg.port === 587,
+          });
+          try {
+            await transporter.verify();
+          } catch (verErr) {
+            console.warn(
+              `[booking] transporter verify failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
+              verErr?.message
+            );
+          }
+          const fromHeader = `Save My Phone <${smtpUser}>`;
+          const ownerInfo = await transporter.sendMail({
+            from: fromHeader,
+            to: ownerRecipient,
+            subject: `Nieuwe afspraak (${preferredDate} ${preferredTime})`,
+            text: textBody,
+            html: htmlBodyOwner,
+            replyTo: email || undefined,
+          });
+          console.log(
+            `[booking] owner mail sent via ${cfg.port} secure=${cfg.secure}:`,
+            ownerInfo?.messageId || "ok"
+          );
+          if (email && email !== ownerRecipient) {
+            const userInfo = await transporter.sendMail({
+              from: fromHeader,
+              to: email,
+              subject: `Bevestiging afspraak ${preferredDate} ${preferredTime}`,
+              text: textBody,
+              html: htmlBodyUser,
+              replyTo: ownerRecipient,
+            });
+            console.log(
+              `[booking] user confirmation sent via ${cfg.port}:`,
+              userInfo?.messageId || "ok"
+            );
+          }
+          emailed = true;
+          break;
+        } catch (mailErr) {
+          lastErr = mailErr;
+          console.warn(
+            `[booking] send failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
+            mailErr?.message
+          );
+          continue;
+        }
+      }
+      if (!emailed && lastErr) {
+        console.error("[booking] All SMTP attempts failed:", lastErr?.message);
+      }
+    } else {
+      if (!process.env.SUPPRESS_EMAIL_WARN) {
+        console.warn(
+          "[booking] Missing MAIL_USER (or MAIL)/MAIL_PASS (or VITE_MAIL/VITE_MAIL_PASS); skipping email send"
+        );
+      }
+    }
+
+    return res.json({ ok: true, clientId, booking, emailed });
   } catch (err) {
     console.error("POST /booking error:", err?.status || "", err?.data || err);
     const status = err?.status || 500;
     return res
       .status(status)
       .json({ error: err?.message || "Failed to create booking" });
+  }
+});
+
+// ====== Blog endpoints ======
+// List all blogs (public)
+router.get("/blogs", async (req, res) => {
+  try {
+    const docs = await db
+      .collection("blogs")
+      .find(
+        {},
+        {
+          projection: {
+            title: 1,
+            slug: 1,
+            content: 1,
+            createdAt: 1,
+            imageUrl: 1,
+          },
+        }
+      )
+      .sort({ createdAt: -1 })
+      .toArray();
+    // Provide an excerpt for convenience
+    const blogs = docs.map((b) => ({
+      _id: b._id,
+      title: b.title,
+      slug: b.slug,
+      createdAt: b.createdAt,
+      imageUrl: b.imageUrl || null,
+      excerpt: (b.content || "").replace(/\s+/g, " ").slice(0, 220),
+    }));
+    res.json(blogs);
+  } catch (err) {
+    console.error("GET /blogs error:", err);
+    res.status(500).json({ error: "Failed to fetch blogs" });
+  }
+});
+
+// Get a single blog by slug (public)
+router.get("/blogs/:slug", async (req, res) => {
+  try {
+    const slug = (req.params.slug || "").toString().trim().toLowerCase();
+    if (!slug) return res.status(400).json({ error: "Invalid slug" });
+    const doc = await db.collection("blogs").findOne(
+      { slug },
+      {
+        projection: {
+          title: 1,
+          slug: 1,
+          content: 1,
+          createdAt: 1,
+          imageUrl: 1,
+        },
+      }
+    );
+    if (!doc) return res.status(404).json({ error: "Blog niet gevonden" });
+    res.json(doc);
+  } catch (err) {
+    console.error("GET /blogs/:slug error:", err);
+    res.status(500).json({ error: "Failed to fetch blog" });
+  }
+});
+
+// Create a new blog (admin only)
+router.post("/admin/blogs", authenticate, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const title = (body.title || "").toString().trim();
+    const content = (body.content || "").toString().trim();
+    const imageUrlRaw = (body.imageUrl || body.cover || "").toString().trim();
+    if (!title || !content) {
+      return res.status(400).json({ error: "Titel en content zijn verplicht" });
+    }
+    // Generate slug
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!baseSlug) {
+      return res.status(400).json({ error: "Ongeldige titel voor slug" });
+    }
+    let slug = baseSlug;
+    let i = 2;
+    while (await db.collection("blogs").findOne({ slug })) {
+      slug = `${baseSlug}-${i++}`;
+    }
+    let imageUrl = null;
+    if (imageUrlRaw) {
+      // Basic validation: must start with http(s)
+      if (/^https?:\/\//i.test(imageUrlRaw)) {
+        imageUrl = imageUrlRaw;
+      } else {
+        return res
+          .status(400)
+          .json({ error: "Afbeelding URL moet met http(s) beginnen" });
+      }
+    }
+    const doc = {
+      title,
+      slug,
+      content,
+      createdAt: new Date(),
+      authorId: req.userId || null,
+      imageUrl,
+    };
+    const result = await db.collection("blogs").insertOne(doc);
+    res.status(201).json({ _id: result.insertedId, ...doc });
+  } catch (err) {
+    console.error("POST /admin/blogs error:", err);
+    res.status(500).json({ error: "Failed to create blog" });
+  }
+});
+
+// Admin: list all blogs with full fields
+router.get("/admin/blogs", authenticate, async (req, res) => {
+  try {
+    const docs = await db
+      .collection("blogs")
+      .find(
+        {},
+        {
+          projection: {
+            title: 1,
+            slug: 1,
+            content: 1,
+            createdAt: 1,
+            imageUrl: 1,
+            authorId: 1,
+          },
+        }
+      )
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(docs);
+  } catch (err) {
+    console.error("GET /admin/blogs error:", err);
+    res.status(500).json({ error: "Failed to fetch admin blogs" });
+  }
+});
+
+// Admin: update a blog by id (regenerate slug if title changed)
+router.put("/admin/blogs/:id", authenticate, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid id" });
+    const _id = new ObjectId(id);
+    const existing = await db.collection("blogs").findOne({ _id });
+    if (!existing) return res.status(404).json({ error: "Blog niet gevonden" });
+
+    const body = req.body || {};
+    const updates = {};
+    let titleChanged = false;
+    if (body.title !== undefined) {
+      const t = (body.title || "").toString().trim();
+      if (!t)
+        return res.status(400).json({ error: "Titel mag niet leeg zijn" });
+      if (t !== existing.title) {
+        titleChanged = true;
+        updates.title = t;
+      }
+    }
+    if (body.content !== undefined) {
+      const c = (body.content || "").toString();
+      updates.content = c;
+    }
+    if (body.imageUrl !== undefined) {
+      const raw = (body.imageUrl || "").toString().trim();
+      if (raw && !/^https?:\/\//i.test(raw)) {
+        return res
+          .status(400)
+          .json({ error: "Afbeelding URL moet met http(s) beginnen" });
+      }
+      updates.imageUrl = raw || null;
+    }
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ error: "Geen wijzigingen" });
+    }
+    if (titleChanged) {
+      const baseSlug = updates.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      if (!baseSlug) {
+        return res.status(400).json({ error: "Ongeldige titel voor slug" });
+      }
+      let slug = baseSlug;
+      let i = 2;
+      while (
+        await db.collection("blogs").findOne({ slug, _id: { $ne: _id } })
+      ) {
+        slug = `${baseSlug}-${i++}`;
+      }
+      updates.slug = slug;
+    }
+    await db.collection("blogs").updateOne({ _id }, { $set: updates });
+    const updated = await db.collection("blogs").findOne(
+      { _id },
+      {
+        projection: {
+          title: 1,
+          slug: 1,
+          content: 1,
+          createdAt: 1,
+          imageUrl: 1,
+        },
+      }
+    );
+    res.json({ ok: true, blog: updated });
+  } catch (err) {
+    console.error("PUT /admin/blogs/:id error:", err);
+    res.status(500).json({ error: "Failed to update blog" });
+  }
+});
+
+// Admin: delete a blog by id
+router.delete("/admin/blogs/:id", authenticate, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid id" });
+    const _id = new ObjectId(id);
+    const del = await db.collection("blogs").deleteOne({ _id });
+    if (!del.deletedCount)
+      return res.status(404).json({ error: "Blog niet gevonden" });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /admin/blogs/:id error:", err);
+    res.status(500).json({ error: "Failed to delete blog" });
   }
 });

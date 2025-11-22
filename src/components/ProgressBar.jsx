@@ -13,7 +13,11 @@ const ProgressBar = ({ currentStep }) => {
       <div className="progress-bar">
         {steps.map((step, index) => (
           <React.Fragment key={step.number}>
-            <div className="progress-step">
+            <div
+              className={`progress-step ${
+                currentStep === step.number ? "active-step" : ""
+              }`}
+            >
               <div
                 className={`step-number ${
                   currentStep > step.number

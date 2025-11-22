@@ -1,0 +1,8 @@
+{
+  "watch": ["server.mjs", "routes", ".env", "*.env"],
+  "ext": "mjs,js,json,env",
+  "ignore": ["dist", "node_modules"],
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

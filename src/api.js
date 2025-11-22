@@ -1,10 +1,13 @@
 // Central API configuration for both dev and prod
 // Use Vite env when available; otherwise infer from window location.
+// Prefer explicit API, else dev localhost, else same-origin for production
 export const API_BASE =
-  import.meta?.env?.VITE_API_BASE ||
+  (import.meta?.env && import.meta.env.VITE_API_BASE) ||
   (typeof window !== "undefined" && window.location.hostname === "localhost"
     ? "http://localhost:3000"
-    : "https://savemyphonesite.onrender.com");
+    : typeof window !== "undefined"
+    ? window.location.origin
+    : "");
 
 export const apiUrl = (path) => {
   if (!path.startsWith("/")) path = "/" + path;
@@ -65,4 +68,65 @@ export async function getJson(path, { retries = 3, retryDelay = 900 } = {}) {
     }
   }
   throw lastErr || new Error("Request failed");
+}
+
+// Blog helpers
+export const fetchBlogs = () => getJson("/blogs");
+export const fetchBlog = (slug) => getJson(`/blogs/${slug}`);
+export async function createBlog({ title, content, imageUrl }) {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch("/admin/blogs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ title, content, imageUrl }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || "Aanmaken mislukt");
+  return json;
+}
+
+// Admin blog management helpers
+export async function fetchAdminBlogs() {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch("/admin/blogs", {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  const json = await res.json().catch(() => []);
+  if (!res.ok) throw new Error(json?.error || "Laden mislukt");
+  return json;
+}
+
+export async function updateBlog({ id, title, content, imageUrl }) {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch(`/admin/blogs/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ title, content, imageUrl }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || "Updaten mislukt");
+  return json.blog;
+}
+
+export async function deleteBlog(id) {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch(`/admin/blogs/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || "Verwijderen mislukt");
+  return json;
 }

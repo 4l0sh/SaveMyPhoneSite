@@ -112,12 +112,6 @@ const StatusPage = () => {
 
   return (
     <div className="status-page">
-      <nav className="smp-navbar">
-        <img src={logo} alt="SaveMyPhone Logo" className="smp-navbar-logo" />
-        <button className="smp-navbar-btn" onClick={() => navigate("/")}>
-          Home
-        </button>
-      </nav>
       <div className="status-container">
         <div className="status-header">
           <span className="status-main-icon">🔎</span>

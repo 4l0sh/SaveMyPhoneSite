@@ -25,6 +25,15 @@ import Contact from "./components/contact.jsx";
 import EditModelDetails from "./components/EditModelDetails.jsx";
 import DeleteModel from "./components/DeleteModel.jsx";
 import MoveModelBrand from "./components/MoveModelBrand.jsx";
+import Footer from "./components/Footer.jsx";
+import About from "./components/about.jsx";
+import Navbar from "./components/Navbar.jsx";
+import Blogs from "./components/Blogs.jsx";
+import BlogDetail from "./components/BlogDetail.jsx";
+import AddBlog from "./components/AddBlog.jsx";
+import AdminBlogs from "./components/AdminBlogs.jsx";
+import EditBlog from "./components/EditBlog.jsx";
+import WhatsAppWidget from "./components/WhatsAppWidget.jsx";
 
 // Simple auth guard for admin routes
 function isTokenValid() {
@@ -67,6 +76,8 @@ function App() {
   return (
     <Router>
       <div className="App">
+        <Navbar />
+        <div className="navbar-spacer" />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/model" element={<ModelSelection />} />
@@ -74,12 +85,39 @@ function App() {
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/status" element={<StatusPage />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/blogs" element={<Blogs />} />
+          <Route path="/blogs/:slug" element={<BlogDetail />} />
           <Route path="/savemyphone-wizard-login" element={<Login />} />
           <Route
             path="/admin"
             element={
               <RequireAuth>
                 <Admin />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/blogs/new"
+            element={
+              <RequireAuth>
+                <AddBlog />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/blogs"
+            element={
+              <RequireAuth>
+                <AdminBlogs />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/blogs/:id/edit"
+            element={
+              <RequireAuth>
+                <EditBlog />
               </RequireAuth>
             }
           />
@@ -156,6 +194,8 @@ function App() {
             }
           />
         </Routes>
+        <Footer />
+        <WhatsAppWidget />
       </div>
     </Router>
   );

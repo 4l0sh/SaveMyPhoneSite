@@ -4,7 +4,6 @@
   align-items: flex-start;
   min-height: 80vh;
   background: #f8f9fa;
-  padding-top: 72px;
 }
 
 .status-page.dark {
@@ -15,7 +14,6 @@
 .status-page.smp-dark {
   background: linear-gradient(120deg, #181818 60%, #232323 100%);
   min-height: 100vh;
-  padding-top: 72px;
 }
 
 .status-container {
@@ -64,7 +62,10 @@
   margin-bottom: 22px;
 }
 
-.status-header .status-title,
+.status-header .status-title {
+  /* brand color for main heading */
+  color: #ff6b35;
+}
 .status-header .status-subtitle,
 .status-header .status-tip {
   color: #333;
@@ -80,7 +81,7 @@
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 6px;
-  color: #333;
+  color: #ff6b35; /* apply brand orange */
 }
 
 .status-subtitle {
@@ -357,44 +358,4 @@
   }
 }
 
-.smp-navbar {
-  width: 100vw;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  height: 72px;
-  box-sizing: border-box;
-  border-bottom: 2px solid #ff6b35;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.smp-navbar-logo {
-  height: 48px;
-  max-width: 220px;
-  display: block;
-  filter: drop-shadow(0 2px 8px #0008);
-  background: transparent;
-}
-
-.smp-navbar-btn {
-  background: #ff6b35;
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  padding: 10px 28px;
-  font-size: 1.08rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  box-shadow: 0 2px 8px #0002;
-}
-
-.smp-navbar-btn:hover {
-  background: #e55a2b;
-}
+/* Navbar styles moved to Navbar.css */

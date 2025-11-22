@@ -4,15 +4,27 @@
 }
 
 .hero-section {
-  background: linear-gradient(135deg, #333 0%, #555 100%) !important;
-  background-color: #333 !important;
+  /* Replace solid gradient with shop background photo */
+  background: url("../assets/savemyphoneshop.jpeg") center/cover no-repeat fixed;
   color: white;
-  padding: 80px 0 60px;
+  padding: 36px 0 28px; /* further reduced vertical spacing to bring wizard higher */
   text-align: center;
   position: relative;
   z-index: 1;
   width: 100%;
-  min-height: 300px;
+  min-height: 200px; /* further smaller hero */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dark translucent overlay for readability */
+.hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 0;
 }
 .icon {
   font-size: 28px;
@@ -41,18 +53,74 @@
 }
 
 .hero-title {
-  font-size: 3.5rem;
+  font-size: 3.1rem;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   color: #ff6b35;
   background: transparent;
 }
 
 .hero-subtitle {
-  font-size: 1.5rem;
-  margin-bottom: 20px;
+  font-size: 1.35rem;
+  margin-bottom: 16px;
   color: #ffffff !important;
   background: transparent;
+}
+
+/* Hero action buttons */
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.hero-status-btn,
+.hero-call-btn {
+  background-color: #ff6b35;
+  color: #ffffff !important;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s ease, transform 0.25s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.hero-status-btn:hover,
+.hero-call-btn:hover {
+  background-color: #e55a2b;
+  transform: translateY(-2px);
+}
+
+.hero-call-btn {
+  background: #ffffff;
+  color: #ff6b35 !important;
+  border: 2px solid #ff6b35;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+.hero-status-btn {
+  background-color: #ff6b35 !important; /* force orange if overridden */
+  color: #ffffff !important;
+}
+.hero-call-btn:hover {
+  background: #ff6b35;
+  color: #ffffff !important;
+}
+
+@media (max-width: 520px) {
+  .hero-status-btn,
+  .hero-call-btn {
+    width: 100%;
+  }
 }
 
 .hero-description {
@@ -64,7 +132,7 @@
 }
 
 .main-content {
-  padding: 40px 0;
+  padding: 20px 0 40px; /* decreased top padding to pull card higher */
   background-color: #f8f9fa;
 }
 
@@ -318,28 +386,28 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .hero-section {
+    padding: 30px 0 22px;
+    min-height: 170px; /* slightly smaller on mobile */
+    background-attachment: scroll; /* better mobile performance */
+  }
   .hero-title {
-    font-size: 2.5rem;
+    font-size: 2.3rem;
   }
-
   .hero-subtitle {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
-
   .selection-card {
     padding: 30px 20px;
     margin: 0 15px;
   }
-
   .selection-title {
     font-size: 1.8rem;
   }
-
   .brand-grid {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 15px;
   }
-
   .footer-content {
     grid-template-columns: 1fr;
     gap: 30px;

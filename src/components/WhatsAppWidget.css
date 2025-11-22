@@ -1,0 +1,135 @@
+.wa-widget {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  font-family: inherit;
+}
+
+.wa-fab {
+  background: #25d366;
+  color: #fff;
+  border: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.wa-fab:hover {
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+
+.wa-fab-open {
+  border-radius: 16px;
+  width: auto;
+  padding: 0 18px;
+  font-size: 15px;
+}
+
+.wa-label {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.wa-panel {
+  width: 260px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: waFade 0.25s ease;
+}
+@keyframes waFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wa-panel-inner {
+  padding: 14px 16px 16px;
+}
+.wa-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.wa-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.wa-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+.wa-close:hover {
+  color: #111827;
+}
+.wa-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+  margin: 0 0 8px;
+}
+.wa-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 10px;
+}
+.wa-action {
+  width: 100%;
+  background: #25d366;
+  color: #ffffff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.wa-action:hover {
+  background: #1ebe59;
+  transform: translateY(-2px);
+}
+.wa-action-confirm {
+  background: #128c7e;
+}
+.wa-action-confirm:hover {
+  background: #0d6a5f;
+}
+
+@media (max-width: 600px) {
+  .wa-widget {
+    bottom: 14px;
+    right: 14px;
+  }
+  .wa-panel {
+    width: 230px;
+  }
+}

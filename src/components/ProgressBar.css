@@ -1,19 +1,19 @@
 .progress-container {
-  background-color: white;
-  padding: 20px 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  padding: 8px 0; /* slightly larger for readability */
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   position: sticky;
-  top: 0;
-  z-index: 100;
+  top: 72px;
+  z-index: 50;
 }
 
 .progress-bar {
   display: flex;
   justify-content: center;
-  align-items: center;
-  max-width: 600px;
+  align-items: flex-start;
+  max-width: 520px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 8px;
 }
 
 .progress-step {
@@ -22,50 +22,60 @@
   align-items: center;
   flex: 1;
   position: relative;
+  min-width: 0;
 }
 
 .step-number {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
-  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  transition: all 0.25s ease;
+  font-size: 0.8rem;
+  background: #e7e7e7;
+  color: #555;
 }
 
 .step-number.active {
   background-color: #ff6b35;
-  color: white;
-  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.2);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.25);
+  font-size: 0.8rem;
 }
 
 .step-number.completed {
   background-color: #ff6b35;
-  color: white;
+  color: #fff;
+  opacity: 0.8;
 }
 
 .step-number.inactive {
-  background-color: #e0e0e0;
-  color: #999;
+  background-color: #dcdcdc;
+  color: #888;
 }
 
 .step-label {
-  font-size: 14px;
-  color: #666;
+  font-size: 12px;
+  color: #444;
   text-align: center;
   font-weight: 500;
+  line-height: 1.15;
+  white-space: nowrap;
+  transition: opacity 0.25s ease;
+}
+.progress-step:not(.active-step) .step-label {
+  opacity: 0.55; /* show but deemphasize */
 }
 
 .step-connector {
-  height: 3px;
-  background-color: #e0e0e0;
+  height: 2px;
+  background-color: #ddd;
   flex: 1;
-  margin: 0 15px;
-  margin-top: -20px;
+  margin: 10px 10px 0 10px;
   border-radius: 2px;
   transition: background-color 0.3s ease;
 }
@@ -75,22 +85,19 @@
 }
 
 @media (max-width: 768px) {
-  .progress-bar {
-    padding: 0 15px;
+  .progress-container {
+    padding: 6px 0;
   }
-
   .step-number {
-    width: 35px;
-    height: 35px;
-    font-size: 14px;
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+    margin-bottom: 2px;
   }
-
   .step-label {
-    font-size: 12px;
+    font-size: 11px;
   }
-
   .step-connector {
-    margin: 0 10px;
-    margin-top: -18px;
+    margin: 9px 8px 0 8px;
   }
 }
