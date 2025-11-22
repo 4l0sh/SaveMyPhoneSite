@@ -17,7 +17,8 @@ const port = process.env.PORT || process.env.VITE_PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/", router);
+// Mount API under /api to avoid static SPA fallback collisions
+app.use("/api", router);
 
 // MongoDB connection (from environment only)
 const mongoUri = process.env.MONGO_URI || process.env.VITE_MONGO_URI || "";
@@ -59,14 +60,8 @@ try {
 
     // Catch-all: send index.html for non-API routes to support React Router
     app.get("*", (req, res, next) => {
-      // Let API routes fall through (already handled above)
-      if (
-        req.path.startsWith("/brands") ||
-        req.path.startsWith("/models") ||
-        req.path.startsWith("/repairs")
-      ) {
-        return next();
-      }
+      // Allow API calls to pass through
+      if (req.path.startsWith("/api/")) return next();
       res.sendFile(indexHtml);
     });
     console.log(

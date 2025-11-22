@@ -1,13 +1,24 @@
 // Central API configuration for both dev and prod
 // Use Vite env when available; otherwise infer from window location.
 // Prefer explicit API, else dev localhost, else same-origin for production
+// Determine API base: prefer explicit VITE_API_BASE, else localhost dev, else same-origin with /api prefix
 export const API_BASE =
   (import.meta?.env && import.meta.env.VITE_API_BASE) ||
   (typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:3000"
+    ? "http://localhost:3000/api"
     : typeof window !== "undefined"
-    ? window.location.origin
+    ? `${window.location.origin}/api`
     : "");
+
+if (typeof window !== "undefined") {
+  if (!import.meta?.env?.VITE_API_BASE) {
+    // Development aid: log inferred base once
+    if (!window.__SMP_API_BASE_LOGGED) {
+      console.log("[api] Using inferred API_BASE:", API_BASE);
+      window.__SMP_API_BASE_LOGGED = true;
+    }
+  }
+}
 
 export const apiUrl = (path) => {
   if (!path.startsWith("/")) path = "/" + path;
