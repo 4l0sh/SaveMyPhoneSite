@@ -972,6 +972,10 @@ function buildSmtpCandidates({ host, explicitPort }) {
   if (!list.find((c) => c.port === 587)) {
     list.push({ host, port: 587, secure: false });
   }
+  // Some providers also accept implicit TLS on 587; add variant
+  if (!list.find((c) => c.port === 587 && c.secure === true)) {
+    list.push({ host, port: 587, secure: true });
+  }
   return list;
 }
 
@@ -1020,7 +1024,7 @@ async function sendContactEmails({
         logger: smtpDebug,
         debug: smtpDebug,
         requireTLS: cfg.port === 587,
-        family: 4,
+        family: Number(process.env.MAIL_FAMILY) || undefined,
       });
       // Apply a connection + send timeout (12s)
       const timeoutMs = Number(process.env.MAIL_TIMEOUT || 12000);
@@ -1093,7 +1097,9 @@ async function sendContactEmails({
       lastErr = mailErr;
       console.warn(
         `[contact] send failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
-        mailErr?.message
+        mailErr?.message,
+        mailErr?.code || "",
+        (mailErr?.response && mailErr.response.slice(0, 120)) || ""
       );
       continue;
     }
@@ -1500,7 +1506,7 @@ router.post("/booking", async (req, res) => {
             logger: smtpDebug,
             debug: smtpDebug,
             requireTLS: cfg.port === 587,
-            family: 4,
+            family: Number(process.env.MAIL_FAMILY) || undefined,
           });
           const timeoutMs = Number(process.env.MAIL_TIMEOUT || 12000);
           const withTimeout = (p) =>
@@ -1562,7 +1568,9 @@ router.post("/booking", async (req, res) => {
           lastErr = mailErr;
           console.warn(
             `[booking] send failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
-            mailErr?.message
+            mailErr?.message,
+            mailErr?.code || "",
+            (mailErr?.response && mailErr.response.slice(0, 120)) || ""
           );
           continue;
         }
