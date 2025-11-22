@@ -46,16 +46,28 @@ export async function getJson(path, { retries = 3, retryDelay = 900 } = {}) {
       const isJson = ct.toLowerCase().includes("application/json");
       if (!res.ok || !isJson) {
         if (attempt < retries) {
+          // Retry early if not last attempt
           await sleep(retryDelay);
           continue;
         }
-        // Try to parse error JSON if any; else throw generic
         let errMsg = `HTTP ${res.status}`;
-        try {
-          const body = isJson ? await res.json() : null;
-          if (body?.error) errMsg = body.error;
-        } catch {}
-        throw new Error(errMsg);
+        // Provide better diagnostics when HTML is received (likely SPA index instead of API)
+        const rawText = await res.text().catch(() => "");
+        const looksHtml = /<!doctype html|<html/i.test(rawText);
+        if (looksHtml && res.status === 200) {
+          errMsg =
+            "Ontvangen HTML in plaats van JSON (waarschijnlijk frontend index.html). Stel VITE_API_BASE goed in naar je backend API.";
+        }
+        // Attempt to parse JSON error if actually JSON but not ok
+        if (isJson) {
+          try {
+            const body = JSON.parse(rawText);
+            if (body?.error) errMsg = body.error;
+          } catch {}
+        }
+        // Append small snippet for context (first 120 chars)
+        const snippet = rawText.slice(0, 120).replace(/\s+/g, " ");
+        throw new Error(`${errMsg}${snippet ? ` | Snippet: ${snippet}` : ""}`);
       }
       return await res.json();
     } catch (err) {
