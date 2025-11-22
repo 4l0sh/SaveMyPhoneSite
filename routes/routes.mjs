@@ -1019,6 +1019,7 @@ async function sendContactEmails({
         logger: smtpDebug,
         debug: smtpDebug,
         requireTLS: cfg.port === 587,
+        family: 4,
       });
       // Apply a connection + send timeout (12s)
       const timeoutMs = Number(process.env.MAIL_TIMEOUT || 12000);
@@ -1498,6 +1499,7 @@ router.post("/booking", async (req, res) => {
             logger: smtpDebug,
             debug: smtpDebug,
             requireTLS: cfg.port === 587,
+            family: 4,
           });
           const timeoutMs = Number(process.env.MAIL_TIMEOUT || 12000);
           const withTimeout = (p) =>
@@ -1812,5 +1814,102 @@ router.delete("/admin/blogs/:id", authenticate, async (req, res) => {
   } catch (err) {
     console.error("DELETE /admin/blogs/:id error:", err);
     res.status(500).json({ error: "Failed to delete blog" });
+  }
+});
+
+// Diagnostic endpoint to test SMTP connectivity (secured by DIAG_KEY env)
+router.get("/email/diagnostic", async (req, res) => {
+  try {
+    const diagKey = process.env.DIAG_KEY || null;
+    if (diagKey) {
+      const provided = req.query.key || req.headers["x-diagnostic-key"];
+      if (provided !== diagKey) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+    }
+    const smtpUser = process.env.MAIL_USER || process.env.MAIL || null;
+    const smtpPass = process.env.MAIL_PASS || null;
+    const smtpHost = process.env.MAIL_HOST || "mail.mijndomein.nl";
+    const envPort = Number(process.env.MAIL_PORT || 0);
+    if (!smtpUser || !smtpPass) {
+      return res.status(400).json({ error: "Missing MAIL/MAIL_PASS" });
+    }
+    const candidates = buildSmtpCandidates({
+      host: smtpHost,
+      explicitPort: envPort,
+    });
+    const results = [];
+    for (const cfg of candidates) {
+      const r = {
+        port: cfg.port,
+        secure: cfg.secure,
+        verifyOk: false,
+        sendOk: false,
+        error: null,
+      };
+      try {
+        const transporter = nodemailer.createTransport({
+          ...cfg,
+          auth: { user: smtpUser, pass: smtpPass },
+          tls: { rejectUnauthorized: false },
+          requireTLS: cfg.port === 587,
+          family: 4,
+        });
+        await transporter
+          .verify()
+          .then(() => {
+            r.verifyOk = true;
+          })
+          .catch((e) => {
+            r.error = e.message;
+          });
+        if (r.verifyOk) {
+          try {
+            const info = await transporter.sendMail({
+              from: `Diag <${smtpUser}>`,
+              to: smtpUser,
+              subject: `SMTP diagnostic ${cfg.port}`,
+              text: `Test mail via port ${cfg.port} secure=${cfg.secure}`,
+            });
+            r.sendOk = !!info?.messageId;
+          } catch (sendErr) {
+            r.error = sendErr.message;
+          }
+        }
+      } catch (outer) {
+        r.error = outer.message;
+      }
+      results.push(r);
+    }
+    // Suggest common fixes
+    const suggestions = [];
+    if (results.every((x) => !x.verifyOk)) {
+      suggestions.push(
+        "Check host/port; provider might require different SMTP host (e.g. smtp.mijndomein.nl)"
+      );
+      suggestions.push(
+        "Outbound SMTP may be blocked; try using an email API service (Resend/Mailgun)"
+      );
+    } else if (results.some((x) => x.verifyOk && !x.sendOk)) {
+      suggestions.push(
+        "Authentication passed but send failed; verify mailbox password and allowed sender domain/SPF"
+      );
+    }
+    if (results.some((x) => /timeout|ETIMEDOUT/i.test(x.error || ""))) {
+      suggestions.push(
+        "Increase MAIL_TIMEOUT or force IPv4 (family:4 already set)"
+      );
+    }
+    return res.json({
+      ok: true,
+      host: smtpHost,
+      user: smtpUser,
+      attempts: results,
+      suggestions,
+      strict: String(process.env.EMAIL_STRICT || "0"),
+    });
+  } catch (err) {
+    console.error("GET /email/diagnostic error", err);
+    res.status(500).json({ error: "Diagnostic failed", detail: err.message });
   }
 });
