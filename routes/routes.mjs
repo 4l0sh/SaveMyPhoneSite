@@ -1,4 +1,5 @@
 import express from "express";
+import net from "net";
 export const router = express.Router();
 import { db } from "../server.mjs";
 import { ObjectId } from "mongodb";
@@ -1823,21 +1824,34 @@ router.get("/email/diagnostic", async (req, res) => {
     const diagKey = process.env.DIAG_KEY || null;
     if (diagKey) {
       const provided = req.query.key || req.headers["x-diagnostic-key"];
-      if (provided !== diagKey) {
+      if (provided !== diagKey)
         return res.status(403).json({ error: "Forbidden" });
-      }
     }
     const smtpUser = process.env.MAIL_USER || process.env.MAIL || null;
     const smtpPass = process.env.MAIL_PASS || null;
     const smtpHost = process.env.MAIL_HOST || "mail.mijndomein.nl";
     const envPort = Number(process.env.MAIL_PORT || 0);
-    if (!smtpUser || !smtpPass) {
+    if (!smtpUser || !smtpPass)
       return res.status(400).json({ error: "Missing MAIL/MAIL_PASS" });
-    }
     const candidates = buildSmtpCandidates({
       host: smtpHost,
       explicitPort: envPort,
     });
+    const diagTimeout = Number(
+      process.env.DIAG_TIMEOUT || process.env.MAIL_TIMEOUT || 12000
+    );
+    const withTimeout = (p) =>
+      Promise.race([
+        p,
+        new Promise((_, rej) =>
+          setTimeout(() => rej(new Error("Diagnostic timeout")), diagTimeout)
+        ),
+      ]);
+    console.log(
+      `[diag] start host=${smtpHost} ports=${candidates
+        .map((c) => c.port)
+        .join(",")} timeout=${diagTimeout}`
+    );
     const results = [];
     for (const cfg of candidates) {
       const r = {
@@ -1855,22 +1869,22 @@ router.get("/email/diagnostic", async (req, res) => {
           requireTLS: cfg.port === 587,
           family: 4,
         });
-        await transporter
-          .verify()
-          .then(() => {
-            r.verifyOk = true;
-          })
-          .catch((e) => {
-            r.error = e.message;
-          });
+        try {
+          await withTimeout(transporter.verify());
+          r.verifyOk = true;
+        } catch (e) {
+          r.error = e.message;
+        }
         if (r.verifyOk) {
           try {
-            const info = await transporter.sendMail({
-              from: `Diag <${smtpUser}>`,
-              to: smtpUser,
-              subject: `SMTP diagnostic ${cfg.port}`,
-              text: `Test mail via port ${cfg.port} secure=${cfg.secure}`,
-            });
+            const info = await withTimeout(
+              transporter.sendMail({
+                from: `Diag <${smtpUser}>`,
+                to: smtpUser,
+                subject: `SMTP diagnostic ${cfg.port}`,
+                text: `Test mail via port ${cfg.port} secure=${cfg.secure}`,
+              })
+            );
             r.sendOk = !!info?.messageId;
           } catch (sendErr) {
             r.error = sendErr.message;
@@ -1881,23 +1895,22 @@ router.get("/email/diagnostic", async (req, res) => {
       }
       results.push(r);
     }
-    // Suggest common fixes
     const suggestions = [];
     if (results.every((x) => !x.verifyOk)) {
+      suggestions.push("Host/port mismatch (try smtp.mijndomein.nl)");
       suggestions.push(
-        "Check host/port; provider might require different SMTP host (e.g. smtp.mijndomein.nl)"
-      );
-      suggestions.push(
-        "Outbound SMTP may be blocked; try using an email API service (Resend/Mailgun)"
+        "Outbound SMTP maybe blocked; consider API (Resend/Mailgun)"
       );
     } else if (results.some((x) => x.verifyOk && !x.sendOk)) {
-      suggestions.push(
-        "Authentication passed but send failed; verify mailbox password and allowed sender domain/SPF"
-      );
+      suggestions.push("Auth ok but send failed; check password & SPF/DKIM");
     }
-    if (results.some((x) => /timeout|ETIMEDOUT/i.test(x.error || ""))) {
+    if (
+      results.some((x) =>
+        /(timeout|ETIMEDOUT|EHOSTUNREACH|ECONNREFUSED)/i.test(x.error || "")
+      )
+    ) {
       suggestions.push(
-        "Increase MAIL_TIMEOUT or force IPv4 (family:4 already set)"
+        "Network/timeouts; lower DIAG_TIMEOUT or use API fallback"
       );
     }
     return res.json({
@@ -1907,9 +1920,48 @@ router.get("/email/diagnostic", async (req, res) => {
       attempts: results,
       suggestions,
       strict: String(process.env.EMAIL_STRICT || "0"),
+      timeout: diagTimeout,
     });
   } catch (err) {
     console.error("GET /email/diagnostic error", err);
     res.status(500).json({ error: "Diagnostic failed", detail: err.message });
+  }
+});
+
+// Raw TCP connectivity test (no SMTP handshake) - helps distinguish DNS/network issues
+router.get("/email/ping", (req, res) => {
+  const diagKey = process.env.DIAG_KEY || null;
+  if (diagKey) {
+    const provided = req.query.key || req.headers["x-diagnostic-key"];
+    if (provided !== diagKey)
+      return res.status(403).json({ error: "Forbidden" });
+  }
+  const host = req.query.host || process.env.MAIL_HOST || "mail.mijndomein.nl";
+  const port = Number(req.query.port || process.env.MAIL_PORT || 587);
+  const timeout = Number(req.query.timeout || 6000);
+  const started = Date.now();
+  const socket = new net.Socket();
+  let finished = false;
+  const finish = (err) => {
+    if (finished) return;
+    finished = true;
+    try {
+      socket.destroy();
+    } catch {}
+    const ms = Date.now() - started;
+    if (err) {
+      console.warn(`[ping] host=${host} port=${port} error=${err.message}`);
+      return res.json({ ok: false, host, port, ms, error: err.message });
+    }
+    console.log(`[ping] host=${host} port=${port} connected in ${ms}ms`);
+    return res.json({ ok: true, host, port, ms });
+  };
+  socket.setTimeout(timeout, () => finish(new Error("timeout")));
+  socket.once("error", finish);
+  socket.once("connect", () => finish(null));
+  try {
+    socket.connect(port, host);
+  } catch (e) {
+    finish(e);
   }
 });
