@@ -1150,14 +1150,14 @@ router.post("/contact", async (req, res) => {
       String(process.env.SMTP_DEBUG || "").toLowerCase() === "1" ||
       String(process.env.SMTP_DEBUG || "").toLowerCase() === "true";
 
+    let mailSent = null; // null=not attempted yet, boolean after attempt (sync mode)
     if (smtpUser && smtpPass) {
       const ownerRecipient = process.env.CONTACT_TO || smtpUser;
       console.log(
         `[contact] Preparing SMTP send as ${smtpUser} host=${smtpHost} (envPort=${
           envPort || "auto"
-        })`
+        }) async=${String(process.env.EMAIL_ASYNC || "1")}`
       );
-      // Optionally send asynchronously so client isn't blocked
       const asyncSend =
         String(process.env.EMAIL_ASYNC || "1").toLowerCase() !== "0";
       if (asyncSend) {
@@ -1173,10 +1173,12 @@ router.post("/contact", async (req, res) => {
             phone,
             message,
             ownerRecipient,
-          }).catch((e) => console.error("[contact] async send error", e));
+          })
+            .then((r) => console.log(`[contact] async final mailed=${r}`))
+            .catch((e) => console.error("[contact] async send error", e));
         });
       } else {
-        await sendContactEmails({
+        mailSent = await sendContactEmails({
           smtpUser,
           smtpPass,
           smtpHost,
@@ -1188,6 +1190,16 @@ router.post("/contact", async (req, res) => {
           message,
           ownerRecipient,
         });
+        console.log(`[contact] sync mailed=${mailSent}`);
+        if (
+          mailSent === false &&
+          String(process.env.EMAIL_STRICT || "0").toLowerCase() === "1"
+        ) {
+          return res.status(502).json({
+            error: "E-mail versturen mislukt",
+            mailed: mailSent,
+          });
+        }
       }
     } else if (!process.env.SUPPRESS_EMAIL_WARN) {
       console.warn(
@@ -1195,7 +1207,11 @@ router.post("/contact", async (req, res) => {
       );
     }
 
-    return res.json({ ok: true, emailed: !!(smtpUser && smtpPass) });
+    return res.json({
+      ok: true,
+      emailed: !!(smtpUser && smtpPass),
+      mailSent, // null if async or not attempted, boolean if sync
+    });
   } catch (err) {
     console.error("POST /contact error:", err);
     res.status(500).json({ error: "Kon bericht niet opslaan" });
