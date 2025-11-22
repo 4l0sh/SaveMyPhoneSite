@@ -957,6 +957,151 @@ router.delete("/models/:id", authenticate, async (req, res) => {
 });
 
 // Contact form submission: store message for follow-up
+// Build an array of transport configs (always include 465 + 587 for reliability)
+function buildSmtpCandidates({ host, explicitPort }) {
+  const list = [];
+  // Prefer explicit port first if provided
+  if (Number.isFinite(explicitPort) && explicitPort > 0) {
+    list.push({ host, port: explicitPort, secure: explicitPort === 465 });
+  }
+  // Ensure we still try both common ports (avoid single-port stall)
+  if (!list.find((c) => c.port === 465)) {
+    list.push({ host, port: 465, secure: true });
+  }
+  if (!list.find((c) => c.port === 587)) {
+    list.push({ host, port: 587, secure: false });
+  }
+  return list;
+}
+
+// Send emails (owner + optional user) with timeout and fallback
+async function sendContactEmails({
+  smtpUser,
+  smtpPass,
+  smtpHost,
+  envPort,
+  smtpDebug,
+  name,
+  email,
+  phone,
+  message,
+  ownerRecipient,
+}) {
+  const candidates = buildSmtpCandidates({
+    host: smtpHost,
+    explicitPort: envPort,
+  });
+  const subject = `Nieuw contactbericht van ${name}`;
+  const lines = [
+    `Naam: ${name}`,
+    email ? `E-mail: ${email}` : null,
+    phone ? `Telefoon: ${phone}` : null,
+    `Bericht:`,
+    message,
+  ].filter(Boolean);
+  const textBody = lines.join("\n");
+  const htmlBody = buildContactHtml({
+    title: "Nieuw contactbericht",
+    name,
+    email,
+    phone,
+    message,
+    brand: "Save My Phone",
+  });
+  let mailed = false;
+  let lastErr = null;
+  for (const cfg of candidates) {
+    try {
+      const transporter = nodemailer.createTransport({
+        ...cfg,
+        auth: { user: smtpUser, pass: smtpPass },
+        tls: { rejectUnauthorized: false },
+        logger: smtpDebug,
+        debug: smtpDebug,
+        requireTLS: cfg.port === 587,
+      });
+      // Apply a connection + send timeout (12s)
+      const timeoutMs = Number(process.env.MAIL_TIMEOUT || 12000);
+      const withTimeout = (p) =>
+        Promise.race([
+          p,
+          new Promise((_, rej) =>
+            setTimeout(() => rej(new Error("SMTP timeout")), timeoutMs)
+          ),
+        ]);
+      try {
+        await withTimeout(transporter.verify());
+      } catch (verErr) {
+        console.warn(
+          `[contact] verify failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
+          verErr?.message
+        );
+      }
+      const fromHeader = `Save My Phone <${smtpUser}>`;
+      const ownerInfo = await withTimeout(
+        transporter.sendMail({
+          from: fromHeader,
+          to: ownerRecipient,
+          subject,
+          text: textBody,
+          html: htmlBody,
+          replyTo: email || undefined,
+        })
+      );
+      console.log(
+        `[contact] owner mail sent via ${cfg.port} secure=${cfg.secure}:`,
+        ownerInfo?.messageId || "ok"
+      );
+      if (email && email !== ownerRecipient) {
+        const confirmSubject = "Je bericht is ontvangen";
+        const confirmText =
+          `Beste ${name},\n\nWe hebben je bericht ontvangen en nemen spoedig contact met je op.\n\nJe bericht:\n` +
+          message +
+          "\n\nMet vriendelijke groet,\nSave My Phone";
+        const confirmHtml = buildContactHtml({
+          title: "Je bericht is ontvangen",
+          name,
+          email,
+          phone,
+          message,
+          brand: "Save My Phone",
+        });
+        try {
+          const userInfo = await withTimeout(
+            transporter.sendMail({
+              from: fromHeader,
+              to: email,
+              subject: confirmSubject,
+              text: confirmText,
+              html: confirmHtml,
+              replyTo: ownerRecipient,
+            })
+          );
+          console.log(
+            `[contact] user confirmation sent via ${cfg.port}:`,
+            userInfo?.messageId || "ok"
+          );
+        } catch (userErr) {
+          console.warn("[contact] user confirmation failed:", userErr?.message);
+        }
+      }
+      mailed = true;
+      break;
+    } catch (mailErr) {
+      lastErr = mailErr;
+      console.warn(
+        `[contact] send failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
+        mailErr?.message
+      );
+      continue;
+    }
+  }
+  if (!mailed && lastErr) {
+    console.error("[contact] All SMTP attempts failed:", lastErr?.message);
+  }
+  return mailed;
+}
+
 router.post("/contact", async (req, res) => {
   try {
     const body = req.body || {};
@@ -1006,126 +1151,48 @@ router.post("/contact", async (req, res) => {
       String(process.env.SMTP_DEBUG || "").toLowerCase() === "true";
 
     if (smtpUser && smtpPass) {
-      // Build candidates: prefer env port if provided, else try 465 then 587
-      const candidates = [];
-      if (Number.isFinite(envPort) && envPort > 0) {
-        candidates.push({
-          host: smtpHost,
-          port: envPort,
-          secure: envPort === 465,
-        });
-      } else {
-        candidates.push({ host: smtpHost, port: 465, secure: true });
-        candidates.push({ host: smtpHost, port: 587, secure: false });
-      }
-
       const ownerRecipient = process.env.CONTACT_TO || smtpUser;
       console.log(
-        `[contact] Using SMTP user ${smtpUser} on ${smtpHost}; candidates: ` +
-          candidates
-            .map((c) => `${c.port}/${c.secure ? "ssl" : "starttls"}`)
-            .join(",")
+        `[contact] Preparing SMTP send as ${smtpUser} host=${smtpHost} (envPort=${
+          envPort || "auto"
+        })`
       );
-      const subject = `Nieuw contactbericht van ${name}`;
-      const lines = [
-        `Naam: ${name}`,
-        email ? `E-mail: ${email}` : null,
-        phone ? `Telefoon: ${phone}` : null,
-        `Bericht:`,
-        message,
-      ].filter(Boolean);
-      const textBody = lines.join("\n");
-      const htmlBody = buildContactHtml({
-        title: "Nieuw contactbericht",
-        name,
-        email,
-        phone,
-        message,
-        brand: "Save My Phone",
-      });
-
-      let mailed = false;
-      let lastErr = null;
-      for (const cfg of candidates) {
-        try {
-          const transporter = nodemailer.createTransport({
-            ...cfg,
-            auth: { user: smtpUser, pass: smtpPass },
-            tls: { rejectUnauthorized: false },
-            logger: smtpDebug,
-            debug: smtpDebug,
-            requireTLS: cfg.port === 587,
-          });
-          // Verify connection/config quickly
-          try {
-            await transporter.verify();
-          } catch (verErr) {
-            console.warn(
-              `[contact] transporter verify failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
-              verErr?.message
-            );
-          }
-          const fromHeader = `Save My Phone <${smtpUser}>`;
-          const ownerInfo = await transporter.sendMail({
-            from: fromHeader,
-            to: ownerRecipient,
-            subject,
-            text: textBody,
-            html: htmlBody,
-            replyTo: email || undefined,
-          });
-          console.log(
-            `[contact] owner mail sent via ${cfg.port} secure=${cfg.secure}:`,
-            ownerInfo?.messageId || "ok"
-          );
-
-          if (email && email !== ownerRecipient) {
-            const confirmSubject = "Je bericht is ontvangen";
-            const confirmText =
-              `Beste ${name},\n\nWe hebben je bericht ontvangen en nemen spoedig contact met je op.\n\nJe bericht:\n` +
-              message +
-              "\n\nMet vriendelijke groet,\nSave My Phone";
-            const confirmHtml = buildContactHtml({
-              title: "Je bericht is ontvangen",
-              name,
-              email,
-              phone,
-              message,
-              brand: "Save My Phone",
-            });
-            const userInfo = await transporter.sendMail({
-              from: fromHeader,
-              to: email,
-              subject: confirmSubject,
-              text: confirmText,
-              html: confirmHtml,
-              replyTo: ownerRecipient,
-            });
-            console.log(
-              `[contact] user confirmation sent via ${cfg.port}:`,
-              userInfo?.messageId || "ok"
-            );
-          }
-          mailed = true;
-          break;
-        } catch (mailErr) {
-          lastErr = mailErr;
-          console.warn(
-            `[contact] send failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
-            mailErr?.message
-          );
-          continue; // try next candidate
-        }
+      // Optionally send asynchronously so client isn't blocked
+      const asyncSend =
+        String(process.env.EMAIL_ASYNC || "1").toLowerCase() !== "0";
+      if (asyncSend) {
+        setImmediate(() => {
+          sendContactEmails({
+            smtpUser,
+            smtpPass,
+            smtpHost,
+            envPort,
+            smtpDebug,
+            name,
+            email,
+            phone,
+            message,
+            ownerRecipient,
+          }).catch((e) => console.error("[contact] async send error", e));
+        });
+      } else {
+        await sendContactEmails({
+          smtpUser,
+          smtpPass,
+          smtpHost,
+          envPort,
+          smtpDebug,
+          name,
+          email,
+          phone,
+          message,
+          ownerRecipient,
+        });
       }
-      if (!mailed && lastErr) {
-        console.error("[contact] All SMTP attempts failed:", lastErr?.message);
-      }
-    } else {
-      if (!process.env.SUPPRESS_EMAIL_WARN) {
-        console.warn(
-          "[contact] Missing MAIL_USER (or MAIL)/MAIL_PASS (or VITE_MAIL/VITE_MAIL_PASS); skipping email send"
-        );
-      }
+    } else if (!process.env.SUPPRESS_EMAIL_WARN) {
+      console.warn(
+        "[contact] Missing MAIL_USER/MAIL + MAIL_PASS; skipping email send"
+      );
     }
 
     return res.json({ ok: true, emailed: !!(smtpUser && smtpPass) });
@@ -1350,17 +1417,11 @@ router.post("/booking", async (req, res) => {
 
     let emailed = false;
     if (smtpUser && smtpPass) {
-      const candidates = [];
-      if (Number.isFinite(envPort) && envPort > 0) {
-        candidates.push({
-          host: smtpHost,
-          port: envPort,
-          secure: envPort === 465,
-        });
-      } else {
-        candidates.push({ host: smtpHost, port: 465, secure: true });
-        candidates.push({ host: smtpHost, port: 587, secure: false });
-      }
+      // Always try both ports plus explicit
+      const candidates = buildSmtpCandidates({
+        host: smtpHost,
+        explicitPort: envPort,
+      });
       const ownerRecipient =
         process.env.BOOKING_TO || process.env.CONTACT_TO || smtpUser;
       const startLocal = new Date(start).toLocaleString("nl-NL", {
@@ -1422,8 +1483,16 @@ router.post("/booking", async (req, res) => {
             debug: smtpDebug,
             requireTLS: cfg.port === 587,
           });
+          const timeoutMs = Number(process.env.MAIL_TIMEOUT || 12000);
+          const withTimeout = (p) =>
+            Promise.race([
+              p,
+              new Promise((_, rej) =>
+                setTimeout(() => rej(new Error("SMTP timeout")), timeoutMs)
+              ),
+            ]);
           try {
-            await transporter.verify();
+            await withTimeout(transporter.verify());
           } catch (verErr) {
             console.warn(
               `[booking] transporter verify failed on ${cfg.host}:${cfg.port} secure=${cfg.secure}:`,
@@ -1431,31 +1500,42 @@ router.post("/booking", async (req, res) => {
             );
           }
           const fromHeader = `Save My Phone <${smtpUser}>`;
-          const ownerInfo = await transporter.sendMail({
-            from: fromHeader,
-            to: ownerRecipient,
-            subject: `Nieuwe afspraak (${preferredDate} ${preferredTime})`,
-            text: textBody,
-            html: htmlBodyOwner,
-            replyTo: email || undefined,
-          });
+          const ownerInfo = await withTimeout(
+            transporter.sendMail({
+              from: fromHeader,
+              to: ownerRecipient,
+              subject: `Nieuwe afspraak (${preferredDate} ${preferredTime})`,
+              text: textBody,
+              html: htmlBodyOwner,
+              replyTo: email || undefined,
+            })
+          );
           console.log(
             `[booking] owner mail sent via ${cfg.port} secure=${cfg.secure}:`,
             ownerInfo?.messageId || "ok"
           );
           if (email && email !== ownerRecipient) {
-            const userInfo = await transporter.sendMail({
-              from: fromHeader,
-              to: email,
-              subject: `Bevestiging afspraak ${preferredDate} ${preferredTime}`,
-              text: textBody,
-              html: htmlBodyUser,
-              replyTo: ownerRecipient,
-            });
-            console.log(
-              `[booking] user confirmation sent via ${cfg.port}:`,
-              userInfo?.messageId || "ok"
-            );
+            try {
+              const userInfo = await withTimeout(
+                transporter.sendMail({
+                  from: fromHeader,
+                  to: email,
+                  subject: `Bevestiging afspraak ${preferredDate} ${preferredTime}`,
+                  text: textBody,
+                  html: htmlBodyUser,
+                  replyTo: ownerRecipient,
+                })
+              );
+              console.log(
+                `[booking] user confirmation sent via ${cfg.port}:`,
+                userInfo?.messageId || "ok"
+              );
+            } catch (uErr) {
+              console.warn(
+                "[booking] user confirmation failed:",
+                uErr?.message
+              );
+            }
           }
           emailed = true;
           break;
