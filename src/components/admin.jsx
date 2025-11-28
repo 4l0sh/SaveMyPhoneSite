@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../api";
+import "./admin.css";
 
 // Minimal, focused admin form to add a new model with prices for a selected brand
 const Admin = () => {
@@ -31,7 +32,6 @@ const Admin = () => {
         if (!mounted) return;
         setBrands(Array.isArray(brandsData) ? brandsData : []);
         setRepairs(Array.isArray(repairsData) ? repairsData : []);
-        // Preselect brand from localStorage if present
         const storedBrandId = localStorage.getItem("selectedBrandId");
         if (storedBrandId) setBrandId(storedBrandId);
       })
@@ -64,7 +64,6 @@ const Admin = () => {
         return;
       }
 
-      // Normalize reparaties array from entered prices
       const reparaties = Object.entries(prices)
         .map(([typeNaam, prijsStr]) => ({ typeNaam, prijs: Number(prijsStr) }))
         .filter((r) => Number.isFinite(r.prijs) && r.prijs >= 0);
@@ -90,7 +89,6 @@ const Admin = () => {
         throw new Error(data?.error || "Aanmaken mislukt");
       }
       setSuccess(`Model aangemaakt: ${data.model} (id: ${data._id})`);
-      // Reset form except brand to allow quick subsequent entries
       setModelName("");
       setYear("");
       setImageUrl("");
@@ -107,174 +105,91 @@ const Admin = () => {
     return <div style={{ padding: 24, color: "#b00020" }}>Fout: {error}</div>;
 
   return (
-    <div style={{ maxWidth: 960, margin: "24px auto", padding: 16 }}>
-      <h1 style={{ marginBottom: 8 }}>Admin</h1>
-      <p style={{ marginTop: 0, color: "#555" }}>
-        Voeg een nieuw model toe aan een merk en stel de prijzen in per
-        reparatietype.
-      </p>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <a
-          href="/admin/edit"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Bewerk prijzen
-        </a>
-        <a
-          href="/admin/repairs"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Reparatietypes beheren
-        </a>
-        <a
-          href="/admin/brands/order"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Merken volgorde
-        </a>
-        <a
-          href="/admin/models/order"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Modellen volgorde
-        </a>
-        <a
-          href="/admin/models/edit-details"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Modelgegevens bewerken
-        </a>
-        <a
-          href="/admin/models/delete"
-          style={{
-            background: "#fee",
-            border: "1px solid #f5a09b",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#b00020",
-            display: "inline-block",
-          }}
-        >
-          Model verwijderen
-        </a>
-        <a
-          href="/admin/move-model"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Model naar ander merk
-        </a>
-        <a
-          href="/admin/repairs/new"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Nieuw reparatietype
-        </a>
-        <a
-          href="/admin/blogs/new"
-          style={{
-            background: "#ff6b35",
-            border: "1px solid #e75724",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#fff",
-            display: "inline-block",
-            fontWeight: 600,
-          }}
-        >
-          Nieuwe blog
-        </a>
-        <a
-          href="/admin/blogs"
-          style={{
-            background: "#eee",
-            border: "1px solid #ccc",
-            padding: "8px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            color: "#333",
-            display: "inline-block",
-          }}
-        >
-          Blogs beheren
-        </a>
+    <div className="admin-container">
+      <div className="admin-header">
+        <div className="admin-title">Admin</div>
+        <div className="admin-subtitle">
+          Beheer modellen, reparatietypes, blogs en shop.
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>
-        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr" }}>
+      <div className="admin-actions">
+        <div className="card">
+          <div className="card-title">Modellen</div>
+          <div className="card-desc">Beheer modelgegevens en prijzen.</div>
+          <div className="card-actions">
+            <a href="/admin/edit" className="btn">
+              Bewerk prijzen
+            </a>
+            <a href="/admin/models/edit-details" className="btn">
+              Modelgegevens
+            </a>
+            <a href="/admin/models/order" className="btn">
+              Volgorde
+            </a>
+            <a href="/admin/models/delete" className="btn btn-danger">
+              Verwijderen
+            </a>
+            <a href="/admin/move-model" className="btn">
+              Verplaats model
+            </a>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Reparatietypes</div>
+          <div className="card-desc">
+            Voeg nieuwe types toe en beheer volgorde.
+          </div>
+          <div className="card-actions">
+            <a href="/admin/repairs/new" className="btn">
+              Nieuw type
+            </a>
+            <a href="/admin/repairs" className="btn">
+              Beheren
+            </a>
+            <a href="/admin/brands/order" className="btn">
+              Merken volgorde
+            </a>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Blogs</div>
+          <div className="card-desc">Publiceer en beheer blogposts.</div>
+          <div className="card-actions">
+            <a href="/admin/blogs/new" className="btn btn-primary">
+              Nieuwe blog
+            </a>
+            <a href="/admin/blogs" className="btn">
+              Blogs beheren
+            </a>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Shop</div>
+          <div className="card-desc">Beheer telefoons voor verkoop.</div>
+          <div className="card-actions">
+            <a href="/admin/phones/new" className="btn">
+              Telefoon toevoegen
+            </a>
+            <a href="/admin/phones" className="btn">
+              Telefoons beheren
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="admin-form">
+        <div className="admin-grid">
           <div>
-            <label
-              style={{ display: "block", fontWeight: 600, marginBottom: 6 }}
-            >
-              Merk
-            </label>
+            <label className="label">Merk</label>
             <select
               value={brandId}
               onChange={(e) => setBrandId(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: 10,
-                borderRadius: 8,
-                border: "1px solid #ccc",
-              }}
+              className="input"
             >
               <option value="" disabled>
                 Kies een merk
@@ -288,35 +203,20 @@ const Admin = () => {
           </div>
 
           <div>
-            <label
-              style={{ display: "block", fontWeight: 600, marginBottom: 6 }}
-            >
-              Modelnaam
-            </label>
+            <label className="label">Modelnaam</label>
             <input
               type="text"
               value={modelName}
               onChange={(e) => setModelName(e.target.value)}
               placeholder={brandName ? `${brandName} model…` : "Modelnaam"}
               required
-              style={{
-                width: "100%",
-                padding: 10,
-                borderRadius: 8,
-                border: "1px solid #ccc",
-              }}
+              className="input"
             />
           </div>
 
-          <div
-            style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr 2fr" }}
-          >
+          <div className="admin-grid-2">
             <div>
-              <label
-                style={{ display: "block", fontWeight: 600, marginBottom: 6 }}
-              >
-                Jaar (optioneel)
-              </label>
+              <label className="label">Jaar (optioneel)</label>
               <input
                 type="number"
                 value={year}
@@ -324,45 +224,24 @@ const Admin = () => {
                 placeholder="2024"
                 min={1990}
                 max={2100}
-                style={{
-                  width: "100%",
-                  padding: 10,
-                  borderRadius: 8,
-                  border: "1px solid #ccc",
-                }}
+                className="input"
               />
             </div>
             <div>
-              <label
-                style={{ display: "block", fontWeight: 600, marginBottom: 6 }}
-              >
-                Afbeelding URL
-              </label>
+              <label className="label">Afbeelding URL</label>
               <input
                 type="url"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="https://…"
-                style={{
-                  width: "100%",
-                  padding: 10,
-                  borderRadius: 8,
-                  border: "1px solid #ccc",
-                }}
+                className="input"
               />
             </div>
           </div>
 
           <div>
             <h3 style={{ margin: "16px 0 8px" }}>Prijzen per reparatietype</h3>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "2fr 1fr",
-                gap: 8,
-                alignItems: "center",
-              }}
-            >
+            <div className="admin-price-grid">
               <div style={{ fontWeight: 600 }}>Reparatie</div>
               <div style={{ fontWeight: 600, textAlign: "right" }}>
                 Prijs (€)
@@ -381,13 +260,7 @@ const Admin = () => {
                       onChange={(e) =>
                         handlePriceChange(rep.naam, e.target.value)
                       }
-                      style={{
-                        width: "100%",
-                        padding: 8,
-                        borderRadius: 6,
-                        border: "1px solid #ccc",
-                        textAlign: "right",
-                      }}
+                      className="input input-sm right"
                     />
                   </div>
                 </React.Fragment>
@@ -399,45 +272,14 @@ const Admin = () => {
             </p>
           </div>
 
-          {success && (
-            <div
-              style={{
-                background: "#e6f4ea",
-                border: "1px solid #9fd3ab",
-                color: "#175b2b",
-                padding: 12,
-                borderRadius: 8,
-              }}
-            >
-              {success}
-            </div>
-          )}
-          {error && (
-            <div
-              style={{
-                background: "#fdecea",
-                border: "1px solid #f5a09b",
-                color: "#8a1f17",
-                padding: 12,
-                borderRadius: 8,
-              }}
-            >
-              {error}
-            </div>
-          )}
+          {success && <div className="banner-success">{success}</div>}
+          {error && <div className="banner-error">{error}</div>}
 
-          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+          <div className="form-actions">
             <button
               type="submit"
               disabled={submitting || !brandId || !modelName}
-              style={{
-                background: "#1e88e5",
-                color: "#fff",
-                padding: "10px 16px",
-                border: 0,
-                borderRadius: 8,
-                cursor: submitting ? "not-allowed" : "pointer",
-              }}
+              className="btn btn-primary"
             >
               {submitting ? "Bezig…" : "Model aanmaken"}
             </button>

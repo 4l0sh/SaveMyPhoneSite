@@ -34,6 +34,9 @@ import AddBlog from "./components/AddBlog.jsx";
 import AdminBlogs from "./components/AdminBlogs.jsx";
 import EditBlog from "./components/EditBlog.jsx";
 import WhatsAppWidget from "./components/WhatsAppWidget.jsx";
+import Shop from "./components/shop.jsx";
+import AddPhone from "./components/AddPhone.jsx";
+import AdminPhones from "./components/AdminPhones.jsx";
 
 // Simple auth guard for admin routes
 function isTokenValid() {
@@ -88,6 +91,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/blogs/:slug" element={<BlogDetail />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/savemyphone-wizard-login" element={<Login />} />
           <Route
             path="/admin"
@@ -118,6 +122,22 @@ function App() {
             element={
               <RequireAuth>
                 <EditBlog />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/phones/new"
+            element={
+              <RequireAuth>
+                <AddPhone />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/phones"
+            element={
+              <RequireAuth>
+                <AdminPhones />
               </RequireAuth>
             }
           />

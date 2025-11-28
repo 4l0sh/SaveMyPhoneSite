@@ -1,22 +1,27 @@
 // Central API configuration for both dev and prod
-// Use Vite env when available; otherwise infer from window location.
-// Prefer explicit API, else dev localhost, else same-origin for production
-// Determine API base: prefer explicit VITE_API_BASE, else localhost dev, else same-origin with /api prefix
-export const API_BASE =
-  (import.meta?.env && import.meta.env.VITE_API_BASE) ||
-  (typeof window !== "undefined" && window.location.hostname === "localhost"
-    ? "http://localhost:3000/api"
-    : typeof window !== "undefined"
-    ? `${window.location.origin}/api`
-    : "");
+// Prefer localhost when running on localhost, regardless of VITE_API_BASE, to simplify local testing
+let RESOLVED_API_BASE = "";
+if (typeof window !== "undefined") {
+  const host = window.location.hostname;
+  const isLocal =
+    host === "localhost" || host === "127.0.0.1" || host === "::1";
+  if (isLocal) {
+    RESOLVED_API_BASE = "http://localhost:3000/api";
+  } else {
+    RESOLVED_API_BASE =
+      (import.meta?.env && import.meta.env.VITE_API_BASE) ||
+      `${window.location.origin}/api`;
+  }
+} else {
+  RESOLVED_API_BASE = (import.meta?.env && import.meta.env.VITE_API_BASE) || "";
+}
+
+export const API_BASE = RESOLVED_API_BASE;
 
 if (typeof window !== "undefined") {
-  if (!import.meta?.env?.VITE_API_BASE) {
-    // Development aid: log inferred base once
-    if (!window.__SMP_API_BASE_LOGGED) {
-      console.log("[api] Using inferred API_BASE:", API_BASE);
-      window.__SMP_API_BASE_LOGGED = true;
-    }
+  if (!window.__SMP_API_BASE_LOGGED) {
+    console.log("[api] Using API_BASE:", API_BASE);
+    window.__SMP_API_BASE_LOGGED = true;
   }
 }
 
@@ -146,6 +151,53 @@ export async function deleteBlog(id) {
   const token = localStorage.getItem("authToken");
   if (!token) throw new Error("Niet ingelogd");
   const res = await apiFetch(`/admin/blogs/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || "Verwijderen mislukt");
+  return json;
+}
+
+// Phones for sale helpers
+export const fetchPhones = () => getJson("/phones");
+export async function addPhoneForSale(payload) {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch("/admin/phones", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || "Aanmaken mislukt");
+  return json;
+}
+export const fetchAllPhonesAdmin = () => getJson("/phones?available=0");
+export async function updatePhone(id, payload) {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch(`/admin/phones/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || "Updaten mislukt");
+  return json;
+}
+export async function deletePhone(id) {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch(`/admin/phones/${id}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
   });

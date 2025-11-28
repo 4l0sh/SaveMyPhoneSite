@@ -1,4 +1,5 @@
 import express from "express";
+import nodemailer from "nodemailer";
 export const router = express.Router();
 import { db } from "../server.mjs";
 import { ObjectId } from "mongodb";
@@ -85,6 +86,117 @@ function buildContactHtml({
   </html>`;
 }
 
+// ===== Email helper for contact form =====
+const SMTP_HOST = process.env.SMTP_HOST || "mail.mijndomein.nl";
+
+function buildTransportConfigs() {
+  const user = process.env.MIJNDOMEINMAIL || "";
+  const pass = process.env.MIJNDOMEINWACHTWOORD || "";
+  if (!user || !pass) return [];
+  return [
+    {
+      host: SMTP_HOST,
+      port: 465,
+      secure: true,
+      auth: { user, pass },
+      greetingTimeout: 8000,
+      connectionTimeout: 8000,
+    },
+    {
+      host: SMTP_HOST,
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      auth: { user, pass },
+      greetingTimeout: 8000,
+      connectionTimeout: 8000,
+    },
+  ];
+}
+
+async function sendContactEmails({ name, email, phone, message }) {
+  try {
+    const transports = buildTransportConfigs();
+    if (!transports.length) {
+      console.warn(
+        "Contact email skipped: missing MIJNDOMEINMAIL/MIJNDOMEINWACHTWOORD"
+      );
+      return { skipped: true };
+    }
+    const owner =
+      (process.env.CONTACT_OWNER_EMAIL || "").trim() || transports[0].auth.user;
+    const baseTitleOwner = "Nieuw bericht via contactformulier";
+    const baseTitleUser = "We hebben je bericht ontvangen";
+    const ownerHtml = buildContactHtml({
+      title: baseTitleOwner,
+      name,
+      email,
+      phone,
+      message,
+    });
+    const confirmHtml = buildContactHtml({
+      title: baseTitleUser,
+      name,
+      email,
+      phone,
+      message,
+    });
+    const textOwner = `${name}\nEmail: ${email || "-"}\nTelefoon: ${
+      phone || "-"
+    }\n\n${message}`;
+    const textUser = `Beste ${name},\n\nBedankt voor je bericht. We nemen zo snel mogelijk contact met je op.\n\nJe bericht:\n${message}\n\nGroeten,\nSave My Phone`;
+
+    let lastErr;
+    for (const cfg of transports) {
+      try {
+        const transporter = nodemailer.createTransport(cfg);
+        // Optional verify (don't fail if verification errors)
+        await transporter.verify().catch(() => {});
+        const tasks = [];
+        if (owner) {
+          tasks.push(
+            transporter.sendMail({
+              from: `"Save My Phone" <${cfg.auth.user}>`,
+              to: owner,
+              subject: `Contact: ${name}`,
+              html: ownerHtml,
+              text: textOwner,
+            })
+          );
+        }
+        if (email) {
+          tasks.push(
+            transporter.sendMail({
+              from: `"Save My Phone" <${cfg.auth.user}>`,
+              to: email,
+              subject: baseTitleUser,
+              html: confirmHtml,
+              text: textUser,
+            })
+          );
+        }
+        await Promise.all(tasks);
+        return { ok: true, transportPort: cfg.port };
+      } catch (err) {
+        lastErr = err;
+        console.warn(
+          "Contact email transport failed",
+          cfg.port,
+          err?.message || err
+        );
+      }
+    }
+    console.error(
+      "All contact email transports failed",
+      lastErr?.message || lastErr
+    );
+    return { ok: false, error: lastErr?.message };
+  } catch (fatal) {
+    console.error("sendContactEmails fatal error", fatal?.message || fatal);
+    return { ok: false, error: fatal?.message };
+  }
+}
+
 function buildBookingHtml({
   title,
   firstName,
@@ -149,6 +261,113 @@ function buildBookingHtml({
   }</div><div style=\"padding:14px 22px;color:${muted};font-size:12px;background:#fafafa;border-top:1px solid #f1f5f9;\">Deze bevestiging is gegenereerd door ${escapeHtml(
     brand
   )}. Bewaar dit voor je administratie.</div></div></body></html>`;
+}
+
+async function sendBookingEmails({
+  firstName,
+  lastName,
+  email,
+  phone,
+  device,
+  repairs,
+  start,
+  end,
+  additionalNotes,
+}) {
+  try {
+    const transports = buildTransportConfigs();
+    if (!transports.length) return { skipped: true };
+    const owner =
+      (process.env.CONTACT_OWNER_EMAIL || "").trim() || transports[0].auth.user;
+    const titleOwner = "Nieuwe afspraak geboekt";
+    const titleUser = "Bevestiging van je afspraak";
+    const ownerHtml = buildBookingHtml({
+      title: titleOwner,
+      firstName,
+      lastName,
+      email,
+      phone,
+      device,
+      repairs,
+      start,
+      end,
+      additionalNotes,
+    });
+    const userHtml = buildBookingHtml({
+      title: titleUser,
+      firstName,
+      lastName,
+      email,
+      phone,
+      device,
+      repairs,
+      start,
+      end,
+      additionalNotes,
+    });
+    const fullName = [firstName, lastName].filter(Boolean).join(" ") || "Klant";
+    const textOwner = `${titleOwner}\nNaam: ${fullName}\nEmail: ${
+      email || "-"
+    }\nTelefoon: ${phone || "-"}\nStart: ${start}\nEinde: ${end}\nToestel: ${
+      device || "-"
+    }\nReparaties: ${(repairs || [])
+      .map((r) => r.name || r.naam || "?")
+      .join(", ")}\n\nOpmerking:\n${additionalNotes || "-"}`;
+    const textUser = `Beste ${fullName},\n\nDit is je afspraakbevestiging.\nStart: ${start}\nEinde: ${end}\nToestel: ${
+      device || "-"
+    }\nReparaties: ${(repairs || [])
+      .map((r) => r.name || r.naam || "?")
+      .join(", ")}\n\nOpmerking:\n${
+      additionalNotes || "-"
+    }\n\nTot snel!\nSave My Phone`;
+    let lastErr;
+    for (const cfg of transports) {
+      try {
+        const transporter = nodemailer.createTransport(cfg);
+        await transporter.verify().catch(() => {});
+        const tasks = [];
+        if (owner) {
+          tasks.push(
+            transporter.sendMail({
+              from: `"Save My Phone" <${cfg.auth.user}>`,
+              to: owner,
+              subject: `Afspraak: ${fullName}`,
+              html: ownerHtml,
+              text: textOwner,
+            })
+          );
+        }
+        if (email) {
+          tasks.push(
+            transporter.sendMail({
+              from: `"Save My Phone" <${cfg.auth.user}>`,
+              to: email,
+              subject: titleUser,
+              html: userHtml,
+              text: textUser,
+            })
+          );
+        }
+        await Promise.all(tasks);
+        return { ok: true, transportPort: cfg.port };
+      } catch (err) {
+        lastErr = err;
+        console.warn(
+          "sendBookingEmails transport failed",
+          cfg.port,
+          err?.message || err
+        );
+      }
+    }
+    console.error(
+      "All booking email transports failed",
+      lastErr?.message || lastErr
+    );
+    return { ok: false, error: lastErr?.message };
+  } catch (fatal) {
+    console.error("sendBookingEmails fatal", fatal?.message || fatal);
+    return { ok: false, error: fatal?.message };
+  }
 }
 
 // Helper to find a repair type by ObjectId or by name (case-insensitive)
@@ -996,8 +1215,11 @@ router.post("/contact", async (req, res) => {
 
     await db.collection("contact_messages").insertOne(doc);
 
-    // Email sending removed: simply acknowledge receipt
-    return res.json({ ok: true });
+    // Fire-and-forget email sending (owner + optional confirmation to user)
+    sendContactEmails(doc).catch((err) => {
+      console.warn("sendContactEmails failed", err?.message);
+    });
+    return res.json({ ok: true, mailed: !!email });
   } catch (err) {
     console.error("POST /contact error:", err);
     res.status(500).json({ error: "Kon bericht niet opslaan" });
@@ -1207,8 +1429,22 @@ router.post("/booking", async (req, res) => {
       body: bookingPayload,
     });
 
-    // Email sending removed; just return booking confirmation
-    return res.json({ ok: true, clientId, booking });
+    // Fire-and-forget booking emails (owner + user confirmation)
+    const mailPayload = {
+      firstName,
+      lastName,
+      email,
+      phone,
+      device,
+      repairs,
+      start,
+      end,
+      additionalNotes,
+    };
+    sendBookingEmails(mailPayload).catch((err) => {
+      console.warn("sendBookingEmails failed", err?.message);
+    });
+    return res.json({ ok: true, clientId, booking, mailed: !!email });
   } catch (err) {
     console.error("POST /booking error:", err?.status || "", err?.data || err);
     const status = err?.status || 500;
@@ -1450,3 +1686,175 @@ router.delete("/admin/blogs/:id", authenticate, async (req, res) => {
 
 // Diagnostic endpoint to test SMTP connectivity (secured by DIAG_KEY env)
 // (Email functionality removed; diagnostic & ping endpoints deleted.)
+
+// ====== Phones for sale ======
+// Public: list available phones for sale
+router.get("/phones", async (req, res) => {
+  try {
+    const onlyAvailable = String(req.query.available || "1") !== "0";
+    const match = onlyAvailable ? { available: { $ne: false } } : {};
+    const docs = await db
+      .collection("phones_for_sale")
+      .find(match, {
+        projection: {
+          title: 1,
+          brand: 1,
+          model: 1,
+          storage: 1,
+          color: 1,
+          price: 1,
+          imageUrl: 1,
+          description: 1,
+          available: 1,
+          batteryPercentage: 1,
+          createdAt: 1,
+        },
+      })
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(docs);
+  } catch (err) {
+    console.error("GET /phones error:", err);
+    res.status(500).json({ error: "Failed to fetch phones" });
+  }
+});
+
+// Admin: add a phone for sale
+router.post("/admin/phones", authenticate, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const title = (body.title || "").toString().trim();
+    const brand = (body.brand || "").toString().trim();
+    const model = (body.model || "").toString().trim();
+    const storage = (body.storage || "").toString().trim();
+    const color = (body.color || "").toString().trim();
+    const priceNum = Number(body.price);
+    const imageUrlRaw = (body.imageUrl || "").toString().trim();
+    const description = (body.description || "").toString().trim();
+    const available = body.available === false ? false : true;
+    const batteryRaw = body.batteryPercentage;
+
+    if (!title) return res.status(400).json({ error: "Titel is verplicht" });
+    if (!brand || !model)
+      return res.status(400).json({ error: "Merk en model zijn verplicht" });
+    if (!Number.isFinite(priceNum) || priceNum <= 0)
+      return res.status(400).json({ error: "Ongeldige prijs" });
+
+    let batteryPercentage = null;
+    if (batteryRaw !== undefined && batteryRaw !== null && batteryRaw !== "") {
+      const b = Number(batteryRaw);
+      if (!Number.isFinite(b) || b < 0 || b > 100)
+        return res.status(400).json({ error: "Ongeldige batterij% (0-100)" });
+      batteryPercentage = Math.round(b);
+    }
+
+    let imageUrl = null;
+    if (imageUrlRaw) {
+      if (!/^https?:\/\//i.test(imageUrlRaw)) {
+        return res
+          .status(400)
+          .json({ error: "Afbeelding URL moet met http(s) beginnen" });
+      }
+      imageUrl = imageUrlRaw;
+    }
+
+    const doc = {
+      title,
+      brand,
+      model,
+      storage,
+      color,
+      price: Math.round(priceNum),
+      imageUrl,
+      description,
+      available,
+      batteryPercentage,
+      createdAt: new Date(),
+      authorId: req.userId || null,
+    };
+    const result = await db.collection("phones_for_sale").insertOne(doc);
+    res.status(201).json({ _id: result.insertedId, ...doc });
+  } catch (err) {
+    console.error("POST /admin/phones error:", err);
+    res.status(500).json({ error: "Failed to add phone" });
+  }
+});
+
+// Admin: update a phone
+router.put("/admin/phones/:id", authenticate, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid id" });
+    const _id = new ObjectId(id);
+    const body = req.body || {};
+    const updates = {};
+
+    if (body.title !== undefined) {
+      const t = (body.title || "").toString().trim();
+      if (!t) return res.status(400).json({ error: "Titel is verplicht" });
+      updates.title = t;
+    }
+    if (body.brand !== undefined)
+      updates.brand = String(body.brand || "").trim();
+    if (body.model !== undefined)
+      updates.model = String(body.model || "").trim();
+    if (body.storage !== undefined)
+      updates.storage = String(body.storage || "").trim();
+    if (body.color !== undefined)
+      updates.color = String(body.color || "").trim();
+    if (body.description !== undefined)
+      updates.description = String(body.description || "").trim();
+    if (body.available !== undefined) updates.available = !!body.available;
+    if (body.price !== undefined) {
+      const p = Number(body.price);
+      if (!Number.isFinite(p) || p <= 0)
+        return res.status(400).json({ error: "Ongeldige prijs" });
+      updates.price = Math.round(p);
+    }
+    if (body.imageUrl !== undefined) {
+      const raw = (body.imageUrl || "").toString().trim();
+      if (raw && !/^https?:\/\//i.test(raw))
+        return res
+          .status(400)
+          .json({ error: "Afbeelding URL moet met http(s) beginnen" });
+      updates.imageUrl = raw || null;
+    }
+    if (body.batteryPercentage !== undefined) {
+      const b = Number(body.batteryPercentage);
+      if (!Number.isFinite(b) || b < 0 || b > 100)
+        return res.status(400).json({ error: "Ongeldige batterij% (0-100)" });
+      updates.batteryPercentage = Math.round(b);
+    }
+
+    if (Object.keys(updates).length === 0)
+      return res.status(400).json({ error: "Geen wijzigingen" });
+
+    const result = await db
+      .collection("phones_for_sale")
+      .updateOne({ _id }, { $set: updates });
+    if (result.matchedCount === 0)
+      return res.status(404).json({ error: "Niet gevonden" });
+    return res.json({ ok: true, updated: result.modifiedCount });
+  } catch (err) {
+    console.error("PUT /admin/phones/:id error:", err);
+    res.status(500).json({ error: "Failed to update phone" });
+  }
+});
+
+// Admin: delete a phone
+router.delete("/admin/phones/:id", authenticate, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ error: "Invalid id" });
+    const _id = new ObjectId(id);
+    const del = await db.collection("phones_for_sale").deleteOne({ _id });
+    if (!del.deletedCount)
+      return res.status(404).json({ error: "Niet gevonden" });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /admin/phones/:id error:", err);
+    res.status(500).json({ error: "Failed to delete phone" });
+  }
+});

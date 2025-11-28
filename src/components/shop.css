@@ -1,0 +1,93 @@
+.shop-container {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 16px;
+}
+.shop-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+.shop-status {
+  padding: 12px;
+  color: #555;
+}
+.shop-error {
+  padding: 12px;
+  background: #fdecea;
+  border: 1px solid #f5a09b;
+  color: #8a1f17;
+  border-radius: 8px;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.phone-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.phone-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+.phone-image.placeholder {
+  display: block;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+}
+.phone-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.phone-title {
+  font-weight: 600;
+}
+.phone-meta {
+  font-size: 13px;
+  color: #666;
+}
+.phone-desc {
+  font-size: 13px;
+  color: #333;
+}
+.phone-battery {
+  font-size: 13px;
+  color: #333;
+}
+.battery-bar {
+  height: 8px;
+  background: #eee;
+  border-radius: 6px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.battery-fill {
+  height: 100%;
+  background: #22c55e;
+}
+.phone-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.phone-price {
+  font-weight: 700;
+}
+.phone-action {
+  background: #1e88e5;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
