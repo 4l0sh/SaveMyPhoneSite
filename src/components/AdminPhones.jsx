@@ -14,6 +14,9 @@ const Row = ({ phone, onUpdated, onDeleted }) => {
         : "",
     available: phone.available !== false,
     imageUrl: phone.imageUrl || "",
+    imageUrl1: (phone.imageUrls && phone.imageUrls[0]) || phone.imageUrl || "",
+    imageUrl2: (phone.imageUrls && phone.imageUrls[1]) || "",
+    imageUrl3: (phone.imageUrls && phone.imageUrls[2]) || "",
     condition: phone.condition || "",
     imei: phone.imei || "",
   });
@@ -26,11 +29,15 @@ const Row = ({ phone, onUpdated, onDeleted }) => {
     setSaving(true);
     setError("");
     try {
+      const imageUrls = [form.imageUrl1, form.imageUrl2, form.imageUrl3]
+        .map((u) => (u || "").trim())
+        .filter((u) => u);
       const payload = {
         title: form.title,
         price: Number(form.price),
         available: !!form.available,
-        imageUrl: form.imageUrl,
+        imageUrl: form.imageUrl || imageUrls[0] || null,
+        imageUrls,
       };
       if (form.batteryPercentage !== "") {
         payload.batteryPercentage = Number(form.batteryPercentage);
@@ -155,12 +162,12 @@ const Row = ({ phone, onUpdated, onDeleted }) => {
               />
               <span>Beschikbaar</span>
             </label>
-            <label>
-              <div style={{ fontWeight: 600 }}>Afbeelding URL</div>
+            <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontWeight: 600 }}>Afbeeldingen (max 3)</div>
               <input
-                value={form.imageUrl}
-                onChange={(e) => onChange("imageUrl", e.target.value)}
-                placeholder="https://…"
+                value={form.imageUrl1}
+                onChange={(e) => onChange("imageUrl1", e.target.value)}
+                placeholder="Afbeelding 1 URL"
                 style={{
                   width: "100%",
                   padding: 8,
@@ -168,7 +175,29 @@ const Row = ({ phone, onUpdated, onDeleted }) => {
                   border: "1px solid #ccc",
                 }}
               />
-            </label>
+              <input
+                value={form.imageUrl2}
+                onChange={(e) => onChange("imageUrl2", e.target.value)}
+                placeholder="Afbeelding 2 URL"
+                style={{
+                  width: "100%",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                }}
+              />
+              <input
+                value={form.imageUrl3}
+                onChange={(e) => onChange("imageUrl3", e.target.value)}
+                placeholder="Afbeelding 3 URL"
+                style={{
+                  width: "100%",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                }}
+              />
+            </div>
             <label>
               <div style={{ fontWeight: 600 }}>Staat (alleen weergave)</div>
               <input
