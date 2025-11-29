@@ -14,6 +14,8 @@ const Row = ({ phone, onUpdated, onDeleted }) => {
         : "",
     available: phone.available !== false,
     imageUrl: phone.imageUrl || "",
+    condition: phone.condition || "",
+    imei: phone.imei || "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -89,6 +91,14 @@ const Row = ({ phone, onUpdated, onDeleted }) => {
                 Batterij: {phone.batteryPercentage}%
               </div>
             )}
+            {phone.condition && (
+              <div style={{ fontSize: 13 }}>Staat: {phone.condition}</div>
+            )}
+            {phone.imei && (
+              <div style={{ fontSize: 12, color: "#555" }}>
+                IMEI: {phone.imei}
+              </div>
+            )}
           </>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
@@ -156,6 +166,36 @@ const Row = ({ phone, onUpdated, onDeleted }) => {
                   padding: 8,
                   borderRadius: 8,
                   border: "1px solid #ccc",
+                }}
+              />
+            </label>
+            <label>
+              <div style={{ fontWeight: 600 }}>Staat (alleen weergave)</div>
+              <input
+                value={form.condition}
+                onChange={(e) => onChange("condition", e.target.value)}
+                disabled
+                style={{
+                  width: "100%",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  background: "#f5f5f5",
+                }}
+              />
+            </label>
+            <label>
+              <div style={{ fontWeight: 600 }}>IMEI (alleen weergave)</div>
+              <input
+                value={form.imei}
+                onChange={(e) => onChange("imei", e.target.value)}
+                disabled
+                style={{
+                  width: "100%",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  background: "#f5f5f5",
                 }}
               />
             </label>

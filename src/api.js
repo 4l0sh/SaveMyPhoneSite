@@ -177,7 +177,16 @@ export async function addPhoneForSale(payload) {
   if (!res.ok) throw new Error(json?.error || "Aanmaken mislukt");
   return json;
 }
-export const fetchAllPhonesAdmin = () => getJson("/phones?available=0");
+export async function fetchAllPhonesAdmin() {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("Niet ingelogd");
+  const res = await apiFetch("/admin/phones", {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  const json = await res.json().catch(() => []);
+  if (!res.ok) throw new Error(json?.error || "Laden mislukt");
+  return json;
+}
 export async function updatePhone(id, payload) {
   const token = localStorage.getItem("authToken");
   if (!token) throw new Error("Niet ingelogd");

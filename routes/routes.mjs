@@ -1704,17 +1704,78 @@ router.get("/phones", async (req, res) => {
           color: 1,
           price: 1,
           imageUrl: 1,
+          imageUrls: 1,
           description: 1,
           available: 1,
           batteryPercentage: 1,
           createdAt: 1,
+          condition: 1,
         },
       })
       .sort({ createdAt: -1 })
       .toArray();
-    res.json(docs);
+    // Normalize legacy + new fields
+    const normalized = docs.map((d) => {
+      const imgs = Array.isArray(d.imageUrls)
+        ? d.imageUrls.filter((u) => typeof u === "string" && u.trim())
+        : [];
+      return {
+        ...d,
+        imageUrls: imgs,
+        imageUrl: d.imageUrl || imgs[0] || null,
+        condition: d.condition || null,
+      };
+    });
+    res.json(normalized);
   } catch (err) {
     console.error("GET /phones error:", err);
+    res.status(500).json({ error: "Failed to fetch phones" });
+  }
+});
+
+// Admin: list all phones including IMEI
+router.get("/admin/phones", authenticate, async (req, res) => {
+  try {
+    const docs = await db
+      .collection("phones_for_sale")
+      .find(
+        {},
+        {
+          projection: {
+            title: 1,
+            brand: 1,
+            model: 1,
+            storage: 1,
+            color: 1,
+            price: 1,
+            imageUrl: 1,
+            imageUrls: 1,
+            description: 1,
+            available: 1,
+            batteryPercentage: 1,
+            createdAt: 1,
+            condition: 1,
+            imei: 1,
+          },
+        }
+      )
+      .sort({ createdAt: -1 })
+      .toArray();
+    const normalized = docs.map((d) => {
+      const imgs = Array.isArray(d.imageUrls)
+        ? d.imageUrls.filter((u) => typeof u === "string" && u.trim())
+        : [];
+      return {
+        ...d,
+        imageUrls: imgs,
+        imageUrl: d.imageUrl || imgs[0] || null,
+        condition: d.condition || null,
+        imei: d.imei || null,
+      };
+    });
+    res.json(normalized);
+  } catch (err) {
+    console.error("GET /admin/phones error:", err);
     res.status(500).json({ error: "Failed to fetch phones" });
   }
 });
@@ -1733,6 +1794,16 @@ router.post("/admin/phones", authenticate, async (req, res) => {
     const description = (body.description || "").toString().trim();
     const available = body.available === false ? false : true;
     const batteryRaw = body.batteryPercentage;
+    const imeiRaw = (body.imei || "").toString().replace(/\s+/g, "");
+    const conditionRaw = (body.condition || "").toString().trim().toLowerCase();
+    const allowedConditions = [
+      "nieuw",
+      "zo goed als nieuw",
+      "refurbished",
+      "zeer goed",
+      "goed",
+      "acceptabel",
+    ];
 
     if (!title) return res.status(400).json({ error: "Titel is verplicht" });
     if (!brand || !model)
@@ -1758,6 +1829,43 @@ router.post("/admin/phones", authenticate, async (req, res) => {
       imageUrl = imageUrlRaw;
     }
 
+    // Collect up to 3 image URLs
+    let imageUrls = [];
+    if (Array.isArray(body.imageUrls)) {
+      imageUrls = body.imageUrls
+        .map((u) => (u || "").toString().trim())
+        .filter((u) => u && /^https?:\/\//i.test(u))
+        .slice(0, 3);
+    } else {
+      const extra = [
+        imageUrlRaw,
+        (body.imageUrl1 || "").toString().trim(),
+        (body.imageUrl2 || "").toString().trim(),
+        (body.imageUrl3 || "").toString().trim(),
+      ].filter((u, i) => u && /^https?:\/\//i.test(u) && i < 3);
+      imageUrls = extra.slice(0, 3);
+    }
+    if (!imageUrl && imageUrls.length) imageUrl = imageUrls[0];
+
+    let condition = null;
+    if (conditionRaw) {
+      if (!allowedConditions.includes(conditionRaw)) {
+        return res.status(400).json({ error: "Ongeldige staat (condition)" });
+      }
+      condition = conditionRaw;
+    }
+
+    let imei = null;
+    if (imeiRaw) {
+      // Basic validation: numeric string length 10-20
+      if (!/^\d{10,20}$/.test(imeiRaw)) {
+        return res
+          .status(400)
+          .json({ error: "Ongeldige IMEI (10-20 cijfers)" });
+      }
+      imei = imeiRaw;
+    }
+
     const doc = {
       title,
       brand,
@@ -1766,11 +1874,14 @@ router.post("/admin/phones", authenticate, async (req, res) => {
       color,
       price: Math.round(priceNum),
       imageUrl,
+      imageUrls,
       description,
       available,
       batteryPercentage,
       createdAt: new Date(),
       authorId: req.userId || null,
+      condition,
+      imei,
     };
     const result = await db.collection("phones_for_sale").insertOne(doc);
     res.status(201).json({ _id: result.insertedId, ...doc });
@@ -1825,6 +1936,47 @@ router.put("/admin/phones/:id", authenticate, async (req, res) => {
       if (!Number.isFinite(b) || b < 0 || b > 100)
         return res.status(400).json({ error: "Ongeldige batterij% (0-100)" });
       updates.batteryPercentage = Math.round(b);
+    }
+
+    if (Array.isArray(body.imageUrls)) {
+      const arr = body.imageUrls
+        .map((u) => (u || "").toString().trim())
+        .filter((u) => u && /^https?:\/\//i.test(u))
+        .slice(0, 3);
+      updates.imageUrls = arr;
+      if (!updates.imageUrl && arr.length) updates.imageUrl = arr[0];
+    }
+
+    if (body.condition !== undefined) {
+      const cond = (body.condition || "").toString().trim().toLowerCase();
+      if (cond) {
+        const allowedConditions = [
+          "nieuw",
+          "zo goed als nieuw",
+          "refurbished",
+          "zeer goed",
+          "goed",
+          "acceptabel",
+        ];
+        if (!allowedConditions.includes(cond)) {
+          return res.status(400).json({ error: "Ongeldige staat" });
+        }
+        updates.condition = cond;
+      } else {
+        updates.condition = null;
+      }
+    }
+
+    if (body.imei !== undefined) {
+      const imeiRaw = (body.imei || "").toString().replace(/\s+/g, "");
+      if (imeiRaw) {
+        if (!/^\d{10,20}$/.test(imeiRaw)) {
+          return res.status(400).json({ error: "Ongeldige IMEI" });
+        }
+        updates.imei = imeiRaw;
+      } else {
+        updates.imei = null;
+      }
     }
 
     if (Object.keys(updates).length === 0)

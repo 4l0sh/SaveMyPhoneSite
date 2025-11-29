@@ -11,9 +11,13 @@ const AddPhone = () => {
   const [color, setColor] = useState("");
   const [price, setPrice] = useState("");
   const [batteryPercentage, setBatteryPercentage] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrl1, setImageUrl1] = useState("");
+  const [imageUrl2, setImageUrl2] = useState("");
+  const [imageUrl3, setImageUrl3] = useState("");
   const [description, setDescription] = useState("");
   const [available, setAvailable] = useState(true);
+  const [condition, setCondition] = useState("");
+  const [imei, setImei] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -24,6 +28,9 @@ const AddPhone = () => {
     setError("");
     setSuccess("");
     try {
+      const imageUrls = [imageUrl1, imageUrl2, imageUrl3]
+        .map((u) => u.trim())
+        .filter((u) => u);
       const payload = {
         title,
         brand,
@@ -31,9 +38,11 @@ const AddPhone = () => {
         storage,
         color,
         price: Number(price),
-        imageUrl,
+        imageUrls,
         description,
         available,
+        condition: condition || undefined,
+        imei: imei || undefined,
         batteryPercentage:
           batteryPercentage === "" ? undefined : Number(batteryPercentage),
       };
@@ -45,10 +54,14 @@ const AddPhone = () => {
       setStorage("");
       setColor("");
       setPrice("");
-      setImageUrl("");
+      setImageUrl1("");
+      setImageUrl2("");
+      setImageUrl3("");
       setDescription("");
       setAvailable(true);
       setBatteryPercentage("");
+      setCondition("");
+      setImei("");
     } catch (err) {
       setError(err.message || "Aanmaken mislukt");
     } finally {
@@ -179,15 +192,72 @@ const AddPhone = () => {
             }}
           />
         </div>
-        <div>
-          <label style={{ display: "block", fontWeight: 600 }}>
-            Afbeelding URL
-          </label>
+        <div style={{ display: "grid", gap: 12 }}>
+          <label style={{ fontWeight: 600 }}>Afbeeldingen (max 3)</label>
           <input
             type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://…"
+            value={imageUrl1}
+            onChange={(e) => setImageUrl1(e.target.value)}
+            placeholder="Afbeelding 1 URL"
+            style={{
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              border: "1px solid #ccc",
+            }}
+          />
+          <input
+            type="url"
+            value={imageUrl2}
+            onChange={(e) => setImageUrl2(e.target.value)}
+            placeholder="Afbeelding 2 URL"
+            style={{
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              border: "1px solid #ccc",
+            }}
+          />
+          <input
+            type="url"
+            value={imageUrl3}
+            onChange={(e) => setImageUrl3(e.target.value)}
+            placeholder="Afbeelding 3 URL"
+            style={{
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              border: "1px solid #ccc",
+            }}
+          />
+        </div>
+        <div>
+          <label style={{ display: "block", fontWeight: 600 }}>Staat</label>
+          <select
+            value={condition}
+            onChange={(e) => setCondition(e.target.value)}
+            style={{
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              border: "1px solid #ccc",
+            }}
+          >
+            <option value="">-- kies staat --</option>
+            <option value="nieuw">nieuw</option>
+            <option value="zo goed als nieuw">zo goed als nieuw</option>
+            <option value="refurbished">refurbished</option>
+            <option value="zeer goed">zeer goed</option>
+            <option value="goed">goed</option>
+            <option value="acceptabel">acceptabel</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ display: "block", fontWeight: 600 }}>IMEI</label>
+          <input
+            value={imei}
+            onChange={(e) => setImei(e.target.value)}
+            placeholder="(alleen intern)"
             style={{
               width: "100%",
               padding: 10,
